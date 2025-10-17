@@ -330,14 +330,14 @@ query := builder.NewQuery().
 ## Schema Types
 
 {{#each types}}
-### `{{go_name}}`
+### `{{go_name name}}`
 
 {{#if description}}{{description}}{{/if}}
 
 ```go
-type {{go_name}} struct {
+type {{go_name name}} struct {
     {{#each properties}}
-    {{go_name}} {{go_type}} `json:"{{json_name}}"` {{#if description}}// {{description}}{{/if}}
+    {{go_name name}} {{go_type data_type}} `json:"{{json_name}}"` {{#if description}}// {{description}}{{/if}}
     {{/each}}
 }
 ```

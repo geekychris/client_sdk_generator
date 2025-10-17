@@ -46,7 +46,7 @@ func main() {
     {{#each operations}}
     {{#if @first}}
     // Example: {{name}}
-    result, err := client.{{go_name name}}(ctx{{#each parameters}}, /* {{go_name}} */{{/each}})
+    result, err := client.{{go_name name}}(ctx{{#each parameters}}, /* {{go_name name}} */{{/each}})
     if err != nil {
         log.Fatal(err)
     }
@@ -105,14 +105,14 @@ client.SetAPIKey("new-api-key")
 ### Client Methods
 
 {{#each operations}}
-#### `{{go_name name}}(ctx context.Context{{#each parameters}}, {{camelCase name}} {{go_type}}{{/each}}) ({{response_type}}, error)`
+#### `{{go_name name}}(ctx context.Context{{#each parameters}}, {{camelCase name}} {{go_type data_type}}{{/each}}) ({{response_type}}, error)`
 
 {{#if description}}{{description}}{{/if}}
 
 {{#if parameters}}
 **Parameters:**
 {{#each parameters}}
-- `{{camelCase name}}` ({{go_type}}) - {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}{{#if required}} (required){{/if}}
+- `{{camelCase name}}` ({{go_type data_type}}) - {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}{{#if required}} (required){{/if}}
 {{/each}}
 {{/if}}
 
@@ -123,14 +123,14 @@ client.SetAPIKey("new-api-key")
 ### Data Types
 
 {{#each types}}
-#### `{{go_name}}`
+#### `{{go_name name}}`
 
 {{#if description}}{{description}}{{/if}}
 
 ```go
-type {{go_name}} struct {
+type {{go_name name}} struct {
     {{#each properties}}
-    {{go_name}} {{go_type}} `json:"{{json_name}}"` {{#if description}}// {{description}}{{/if}}
+    {{go_name name}} {{go_type data_type}} `json:"{{json_name}}"` {{#if description}}// {{description}}{{/if}}
     {{/each}}
 }
 ```

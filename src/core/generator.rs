@@ -389,7 +389,17 @@ impl SdkGenerator {
         if let Some(override_path) = &self.config.template_overrides {
             Ok(override_path.clone())
         } else {
-            // Default template directory relative to the binary
+            // Try to find templates directory relative to the project root
+            let current_dir = std::env::current_dir()
+                .context("Failed to get current directory")?;
+            
+            // Look for templates directory in current directory
+            let templates_dir = current_dir.join("templates");
+            if templates_dir.exists() {
+                return Ok(templates_dir);
+            }
+            
+            // Fallback to executable directory (for installed binary)
             let exe_path = std::env::current_exe()
                 .context("Failed to get current executable path")?;
             let exe_dir = exe_path.parent()

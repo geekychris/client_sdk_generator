@@ -40,6 +40,11 @@ impl TemplateEngine {
         handlebars.register_helper("ne", Box::new(ne_helper));
         handlebars.register_helper("or", Box::new(or_helper));
         handlebars.register_helper("PascalCase", Box::new(pascal_case_helper));
+        handlebars.register_helper("json_schema", Box::new(json_schema_helper));
+        handlebars.register_helper("grpc_type_mapping", Box::new(grpc_type_mapping_helper));
+        handlebars.register_helper("go_type", Box::new(go_type_helper));
+        handlebars.register_helper("ts_type", Box::new(ts_type_helper));
+        handlebars.register_helper("default_value", Box::new(default_value_helper));
         
         Ok(Self { handlebars, language, protocol })
     }
@@ -441,6 +446,132 @@ fn else_helper(
 ) -> HelperResult {
     // The else helper is primarily used for control flow in Handlebars templates
     // It doesn't need to output anything directly as it's handled by the template engine
+    Ok(())
+}
+
+fn json_schema_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &HbsContext,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let _type_ref = h.param(0)
+        .ok_or_else(|| handlebars::RenderError::new("Type reference required for json_schema"))?;
+    
+    // For now, return a placeholder JSON schema
+    // This would need to be implemented based on the actual TypeReference structure
+    let schema = "{ \"type\": \"object\", \"properties\": {} }";
+    out.write(schema)?;
+    Ok(())
+}
+
+fn grpc_type_mapping_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &HbsContext,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let type_name = if let Some(param) = h.param(0) {
+        param.value().as_str().unwrap_or("string")
+    } else {
+        // Fallback to string if no parameter provided
+        "string"
+    };
+    
+    let ts_type = match type_name {
+        "string" => "string",
+        "int32" | "int64" | "uint32" | "uint64" | "sint32" | "sint64" => "number",
+        "float" | "double" => "number",
+        "bool" => "boolean",
+        "bytes" => "Uint8Array",
+        _ => type_name, // Return the type name as-is for custom types
+    };
+    
+    out.write(ts_type)?;
+    Ok(())
+}
+
+fn go_type_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &HbsContext,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let type_name = if let Some(param) = h.param(0) {
+        param.value().as_str().unwrap_or("string")
+    } else {
+        "string" // Fallback to string if no parameter provided
+    };
+    
+    let go_type = match type_name {
+        "string" => "string",
+        "int32" => "int32",
+        "int64" => "int64",
+        "uint32" => "uint32",
+        "uint64" => "uint64",
+        "float" => "float32",
+        "double" => "float64",
+        "bool" => "bool",
+        "bytes" => "[]byte",
+        _ => type_name, // Return the type name as-is for custom types
+    };
+    
+    out.write(go_type)?;
+    Ok(())
+}
+
+fn ts_type_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &HbsContext,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let type_name = if let Some(param) = h.param(0) {
+        param.value().as_str().unwrap_or("string")
+    } else {
+        "string" // Fallback to string if no parameter provided
+    };
+    
+    let ts_type = match type_name {
+        "string" => "string",
+        "integer" | "number" | "int32" | "int64" | "float" | "double" => "number",
+        "boolean" | "bool" => "boolean",
+        "array" => "any[]",
+        "object" => "any",
+        _ => type_name, // Return the type name as-is for custom types
+    };
+    
+    out.write(ts_type)?;
+    Ok(())
+}
+
+fn default_value_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &HbsContext,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    let type_name = if let Some(param) = h.param(0) {
+        param.value().as_str().unwrap_or("string")
+    } else {
+        "string" // Fallback to string if no parameter provided
+    };
+    
+    let default_val = match type_name {
+        "string" => "''",
+        "number" | "int32" | "int64" | "float" | "double" => "0",
+        "boolean" | "bool" => "false",
+        "array" => "[]",
+        "object" => "{}",
+        _ => "undefined",
+    };
+    
+    out.write(default_val)?;
     Ok(())
 }
 
