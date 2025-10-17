@@ -23,7 +23,7 @@ handlebars = "4.5"
 
 # OpenAPI parsing
 openapiv3 = "2.0"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
 
 # GraphQL parsing
 graphql-parser = "0.4"
