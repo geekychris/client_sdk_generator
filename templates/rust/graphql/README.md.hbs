@@ -1,0 +1,109 @@
+# {{class_name spec.name}} Rust SDK
+
+Auto-generated Rust SDK for {{spec.name}}.
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+{{kebab_case package}} = "{{version}}"
+```
+
+## Usage
+
+```rust
+use {{snake_case package}}::{{class_name spec.name}}Client;
+use {{snake_case package}}::ClientConfig;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = ClientConfig::new("https://api.example.com");
+    let client = {{class_name spec.name}}Client::new(config)?;
+
+    // Use the client to make API calls
+    // let result = client.some_method().await?;
+
+    Ok(())
+}
+```
+
+## Configuration
+
+The client can be configured with various options:
+
+- `base_url`: The base URL for the API
+- `timeout_seconds`: Request timeout in seconds
+- `api_key`: Optional API key for authentication
+- `default_headers`: Custom headers to include with requests
+
+{{#if features.retry}}
+### Retry Configuration
+
+The client supports automatic retries with exponential backoff:
+
+```rust
+use {{snake_case package}}::RetryConfig;
+
+let mut config = ClientConfig::new("https://api.example.com");
+config.retry_config.max_attempts = 5;
+config.retry_config.initial_delay_ms = 200;
+```
+{{/if}}
+
+{{#if features.caching}}
+### Caching
+
+The client includes response caching capabilities:
+
+```rust
+use {{snake_case package}}::CacheConfig;
+
+let mut config = ClientConfig::new("https://api.example.com");
+config.cache_config.enabled = true;
+config.cache_config.ttl_seconds = 600; // 10 minutes
+```
+{{/if}}
+
+{{#if features.telemetry}}
+### Telemetry
+
+The client supports telemetry and metrics collection:
+
+```rust
+use {{snake_case package}}::TelemetryConfig;
+
+let mut config = ClientConfig::new("https://api.example.com");
+config.telemetry_config.enabled = true;
+config.telemetry_config.service_name = "my-service".to_string();
+```
+{{/if}}
+
+## Error Handling
+
+The SDK provides comprehensive error handling:
+
+```rust
+use {{snake_case package}}::{{class_name spec.name}}Error;
+
+match client.some_method().await {
+    Ok(result) => println!("Success: {:?}", result),
+    Err({{class_name spec.name}}Error::Http(err)) => eprintln!("HTTP error: {}", err),
+    Err({{class_name spec.name}}Error::Api(status, msg)) => eprintln!("API error {}: {}", status, msg),
+    Err({{class_name spec.name}}Error::Parsing(err)) => eprintln!("Parse error: {}", err),
+    Err({{class_name spec.name}}Error::Url(err)) => eprintln!("URL error: {}", err),
+}
+```
+
+## API Documentation
+
+For detailed API documentation, see [api.md](./api.md).
+
+## License
+
+{{#if license}}
+This project is licensed under the {{license}} license.
+{{else}}
+See the project license for details.
+{{/if}}

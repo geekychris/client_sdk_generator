@@ -1,0 +1,200 @@
+# {{class_name spec.name}} API Documentation
+
+This document provides detailed information about the {{spec.name}} API and how to use the generated Rust SDK.
+
+## Base URL
+
+```
+{{#if spec.servers}}
+{{#each spec.servers}}
+{{url}}
+{{/each}}
+{{else}}
+https://api.example.com
+{{/if}}
+```
+
+## Authentication
+
+{{#if config.authentication}}
+This API uses {{config.authentication.auth_type}} authentication.
+
+{{#if (eq config.authentication.auth_type "ApiKey")}}
+### API Key Authentication
+
+Include your API key in requests using:
+
+```rust
+let config = ClientConfig::new("{{spec.servers.0.url}}")
+    .with_api_key("your-api-key-here");
+```
+
+{{/if}}
+{{else}}
+This API does not require authentication.
+{{/if}}
+
+## Available Methods
+
+{{#each spec.operations}}
+### {{method_name name}}
+
+{{#if description}}
+{{description}}
+{{/if}}
+
+**HTTP Method**: `{{upper_case method}}`  
+**Path**: `{{path}}`
+
+{{#if parameters}}
+#### Parameters
+
+{{#each parameters}}
+- **{{name}}** ({{parameter_type}}{{#if required}}, required{{/if}}): {{description}}
+  - Type: `{{type_mapping data_type}}`
+  {{#if default_value}}
+  - Default: `{{default_value}}`
+  {{/if}}
+
+{{/each}}
+{{/if}}
+
+{{#if request_body}}
+#### Request Body
+
+Type: `{{type_mapping request_body}}`
+
+{{#if request_body.description}}
+{{request_body.description}}
+{{/if}}
+{{/if}}
+
+{{#if responses}}
+#### Responses
+
+{{#each responses}}
+- **{{status_code}}**: {{description}}
+  {{#if data_type}}
+  - Type: `{{type_mapping data_type}}`
+  {{/if}}
+
+{{/each}}
+{{/if}}
+
+#### Usage Example
+
+```rust
+{{#if parameters}}
+{{#each parameters}}
+{{#if required}}
+let {{snake_case name}} = /* your {{type_mapping data_type}} value */;
+{{/if}}
+{{/each}}
+{{/if}}
+
+let result = client.{{snake_case name}}(
+    {{#each parameters}}
+    {{#if required}}
+    {{snake_case name}},
+    {{/if}}
+    {{/each}}
+).await?;
+
+println!("Result: {:?}", result);
+```
+
+---
+
+{{/each}}
+
+## Data Types
+
+{{#each spec.types}}
+### {{class_name name}}
+
+{{#if description}}
+{{description}}
+{{/if}}
+
+{{#if properties}}
+#### Properties
+
+{{#each properties}}
+- **{{name}}**{{#if required}} (required){{/if}}: {{description}}
+  - Type: `{{type_mapping data_type}}`
+  {{#if default_value}}
+  - Default: `{{default_value}}`
+  {{/if}}
+
+{{/each}}
+{{/if}}
+
+#### Usage Example
+
+```rust
+use {{snake_case ../package}}::{{class_name name}};
+
+let instance = {{class_name name}} {
+    {{#each properties}}
+    {{#if required}}
+    {{snake_case name}}: /* your {{type_mapping data_type}} value */,
+    {{else}}
+    {{snake_case name}}: None,
+    {{/if}}
+    {{/each}}
+};
+
+// Or use the builder pattern
+let instance = {{class_name name}}::new(
+    {{#each properties}}
+    {{#if required}}
+    /* {{snake_case name}} */ /* your {{type_mapping data_type}} value */,
+    {{/if}}
+    {{/each}}
+){{#each properties}}{{#unless required}}
+.with_{{snake_case name}}(/* your {{type_mapping data_type}} value */){{/unless}}{{/each}};
+```
+
+---
+
+{{/each}}
+
+## Error Handling
+
+The SDK provides a comprehensive error type that covers all possible error conditions:
+
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum {{class_name spec.name}}Error {
+    #[error("HTTP request failed: {0}")]
+    Http(#[from] reqwest::Error),
+    
+    #[error("API returned error {0}: {1}")]
+    Api(u16, String),
+    
+    #[error("Failed to parse response: {0}")]
+    Parsing(String),
+    
+    #[error("Invalid URL: {0}")]
+    Url(#[from] url::ParseError),
+}
+```
+
+### Common Error Scenarios
+
+1. **Network Errors**: Connection timeouts, DNS resolution failures
+2. **HTTP Errors**: 4xx and 5xx status codes from the server
+3. **Parsing Errors**: Invalid JSON in response bodies
+4. **URL Errors**: Malformed URLs or path parameters
+
+## Best Practices
+
+1. **Error Handling**: Always handle errors appropriately in your application
+2. **Timeouts**: Set reasonable timeout values for your use case
+3. **Retries**: Use the built-in retry functionality for transient failures
+4. **Caching**: Enable response caching for read-heavy workloads
+5. **Telemetry**: Enable telemetry in production for monitoring and debugging
+
+## Support
+
+For issues with this SDK, please check the generated code or contact the API provider.

@@ -1,0 +1,158 @@
+package {{package_name}}
+
+import (
+	"encoding/json"
+	"time"
+)
+
+// {{class_name type.name}} {{type.description}}
+{{#if type.deprecated}}
+// Deprecated: This type is deprecated
+{{/if}}
+type {{class_name type.name}} struct {
+	{{#each type.properties}}
+	// {{description}}
+	{{#if deprecated}}
+	// Deprecated: This field is deprecated
+	{{/if}}
+{{pascal_case name}} {{#if required}}{{type_mapping data_type}}{{else}}*{{type_mapping data_type}}{{/if}} `json:"{{name}}"{{#unless required}} omitempty{{/unless}}`
+	{{/each}}
+	{{#if type.additional_properties}}
+	
+	// AdditionalProperties holds additional properties not defined in the schema
+	AdditionalProperties map[string]interface{} `json:"-"`
+	{{/if}}
+}
+
+// New{{class_name type.name}} creates a new {{class_name type.name}} with required fields
+func New{{class_name type.name}}({{#each type.properties}}{{#if required}}{{camel_case name}} {{type_mapping data_type}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}}) *{{class_name type.name}} {
+	return &{{class_name type.name}}{
+		{{#each type.properties}}
+		{{#if required}}
+		{{pascal_case name}}: {{camel_case name}},
+		{{/if}}
+		{{/each}}
+		{{#if type.additional_properties}}
+		AdditionalProperties: make(map[string]interface{}),
+		{{/if}}
+	}
+}
+
+{{#each type.properties}}
+{{#unless required}}
+// Set{{pascal_case name}} sets the {{name}} field
+func (m *{{class_name ../type.name}}) Set{{pascal_case name}}({{camel_case name}} {{type_mapping data_type}}) *{{class_name ../type.name}} {
+	m.{{pascal_case name}} = &{{camel_case name}}
+	return m
+}
+
+// Get{{pascal_case name}} returns the {{name}} field value if set, nil otherwise
+func (m *{{class_name ../type.name}}) Get{{pascal_case name}}() *{{type_mapping data_type}} {
+	return m.{{pascal_case name}}
+}
+
+// Has{{pascal_case name}} returns true if the {{name}} field is set
+func (m *{{class_name ../type.name}}) Has{{pascal_case name}}() bool {
+	return m.{{pascal_case name}} != nil
+}
+
+{{/unless}}
+{{/each}}
+
+{{#if type.additional_properties}}
+// SetAdditionalProperty sets an additional property
+func (m *{{class_name type.name}}) SetAdditionalProperty(key string, value interface{}) *{{class_name type.name}} {
+	if m.AdditionalProperties == nil {
+		m.AdditionalProperties = make(map[string]interface{})
+	}
+	m.AdditionalProperties[key] = value
+	return m
+}
+
+// GetAdditionalProperty gets an additional property
+func (m *{{class_name type.name}}) GetAdditionalProperty(key string) (interface{}, bool) {
+	if m.AdditionalProperties == nil {
+		return nil, false
+	}
+	value, exists := m.AdditionalProperties[key]
+	return value, exists
+}
+
+// MarshalJSON implements json.Marshaler to handle additional properties
+func (m *{{class_name type.name}}) MarshalJSON() ([]byte, error) {
+	type Alias {{class_name type.name}}
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+	
+	result, err := json.Marshal(aux)
+	if err != nil {
+		return nil, err
+	}
+	
+	if m.AdditionalProperties != nil && len(m.AdditionalProperties) > 0 {
+		var base map[string]interface{}
+		if err := json.Unmarshal(result, &base); err != nil {
+			return nil, err
+		}
+		
+		for k, v := range m.AdditionalProperties {
+			base[k] = v
+		}
+		
+		return json.Marshal(base)
+	}
+	
+	return result, nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler to handle additional properties
+func (m *{{class_name type.name}}) UnmarshalJSON(data []byte) error {
+	type Alias {{class_name type.name}}
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+	
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	
+	// Remove known fields from raw map
+	{{#each type.properties}}
+	delete(raw, "{{name}}")
+	{{/each}}
+	
+	// Store remaining fields as additional properties
+	if len(raw) > 0 {
+		m.AdditionalProperties = raw
+	}
+	
+	return nil
+}
+{{/if}}
+
+// Validate validates the {{class_name type.name}} instance
+func (m *{{class_name type.name}}) Validate() error {
+	// Add validation logic here if needed
+	{{#each type.properties}}
+	{{#if required}}
+	// {{pascal_case name}} is required
+	{{/if}}
+	{{/each}}
+	return nil
+}
+
+// String returns a string representation of the {{class_name type.name}}
+func (m *{{class_name type.name}}) String() string {
+	data, _ := json.MarshalIndent(m, "", "  ")
+	return string(data)
+}

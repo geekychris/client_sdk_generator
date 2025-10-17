@@ -1,0 +1,51 @@
+import { {{#each types}}{{name}}{{#unless @last}}, {{/unless}}{{/each}} } from './types';
+import { {{client_class_name}}, ClientConfig{{#if authentication}}, AuthConfig{{/if}} } from './client';
+
+/**
+ * {{api_name}} TypeScript SDK Async Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ * 
+ * Provides Promise-based async operations (TypeScript/JavaScript is naturally async)
+ */
+export class {{client_class_name}}Async {
+  private client: {{client_class_name}};
+
+  constructor(config: ClientConfig) {
+    this.client = new {{client_class_name}}(config);
+  }
+
+  {{#if authentication}}
+  {{#if supports_api_key}}
+  /**
+   * Update the API key for authentication
+   */
+  setApiKey(apiKey: string): void {
+    this.client.setApiKey(apiKey);
+  }
+  {{/if}}
+
+  {{#if supports_bearer_auth}}
+  /**
+   * Update the bearer token for authentication
+   */
+  setBearerToken(token: string): void {
+    this.client.setBearerToken(token);
+  }
+  {{/if}}
+  {{/if}}
+
+  {{#each operations}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} operation{{/if}} (Async)
+   {{#each parameters}}
+   * @param {{camel_name}} {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}
+   {{/each}}
+   */
+  async {{camel_case name}}Async({{#each parameters}}{{camel_name}}{{#unless required}}?{{/unless}}: {{ts_type}}{{#unless @last}}, {{/unless}}{{/each}}): Promise<{{response_type}}> {
+    // In TypeScript/JavaScript, all operations are naturally async
+    return this.client.{{camel_case name}}({{#each parameters}}{{camel_name}}{{#unless @last}}, {{/unless}}{{/each}});
+  }
+
+  {{/each}}
+}

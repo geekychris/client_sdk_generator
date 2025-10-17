@@ -1,0 +1,59 @@
+[package]
+name = "client-sdk-generator"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A multi-language client SDK generator for OpenAPI, GraphQL, and gRPC"
+license = "MIT"
+repository = "https://github.com/yourusername/client-sdk-generator"
+
+[dependencies]
+# Core dependencies
+clap = { version = "4.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Template engine
+tera = "1.19"
+handlebars = "4.5"
+
+# OpenAPI parsing
+openapiv3 = "2.0"
+reqwest = { version = "0.11", features = ["json"] }
+
+# GraphQL parsing
+graphql-parser = "0.4"
+async-graphql-parser = "7.0"
+
+# gRPC/Protobuf parsing
+prost = "0.12"
+prost-types = "0.12"
+protobuf-parse = "3.4"
+
+# File handling
+walkdir = "2.4"
+tempfile = "3.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.14"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"
+
+[[bin]]
+name = "sdk-gen"
+path = "src/main.rs"
+
+[workspace]
+members = [".", "examples/*"]

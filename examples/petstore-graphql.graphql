@@ -1,0 +1,52 @@
+type Query {
+  pets: [Pet!]!
+  pet(id: ID!): Pet
+  categories: [Category!]!
+}
+
+type Mutation {
+  addPet(input: NewPetInput!): Pet!
+  updatePet(id: ID!, input: UpdatePetInput!): Pet!
+  deletePet(id: ID!): Boolean!
+}
+
+type Pet {
+  id: ID!
+  name: String!
+  category: Category
+  photoUrls: [String!]!
+  tags: [Tag!]!
+  status: PetStatus!
+}
+
+type Category {
+  id: ID!
+  name: String!
+}
+
+type Tag {
+  id: ID!
+  name: String!
+}
+
+enum PetStatus {
+  AVAILABLE
+  PENDING
+  SOLD
+}
+
+input NewPetInput {
+  name: String!
+  categoryId: ID
+  photoUrls: [String!]!
+  tagIds: [ID!]!
+  status: PetStatus!
+}
+
+input UpdatePetInput {
+  name: String
+  categoryId: ID
+  photoUrls: [String!]
+  tagIds: [ID!]
+  status: PetStatus
+}

@@ -1,0 +1,247 @@
+/**
+ * {{type.description}}
+ {{#if type.deprecated}}
+ * @deprecated This type is deprecated
+ {{/if}}
+ */
+export interface {{class_name type.name}} {
+  {{#each type.properties}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} property{{/if}}
+   {{#if deprecated}}
+   * @deprecated This property is deprecated
+   {{/if}}
+   */
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{grpc_type_mapping data_type}};
+  {{/each}}
+}
+
+{{#if type.enum_values}}
+/**
+ * Enum values for {{class_name type.name}}
+ */
+export enum {{class_name type.name}}Enum {
+  {{#each type.enum_values}}
+  {{upper_case this}} = '{{this}}',
+  {{/each}}
+}
+
+/**
+ * gRPC enum number mapping for {{class_name type.name}}
+ */
+export const {{class_name type.name}}EnumNumbers = {
+  {{#each type.enum_values}}
+  {{upper_case this}}: {{@index}},
+  {{/each}}
+} as const;
+{{/if}}
+
+/**
+ * gRPC message class for {{class_name type.name}}
+ */
+export class {{class_name type.name}}Message {
+  {{#each type.properties}}
+  public {{camel_case name}}{{#unless required}}?{{/unless}}: {{grpc_type_mapping data_type}};
+  {{/each}}
+
+  constructor(data: Partial<{{class_name type.name}}> = {}) {
+    {{#each type.properties}}
+    {{#if required}}
+    this.{{camel_case name}} = data.{{camel_case name}} || {{default_value data_type}};
+    {{else}}
+    if (data.{{camel_case name}} !== undefined) {
+      this.{{camel_case name}} = data.{{camel_case name}};
+    }
+    {{/if}}
+    {{/each}}
+  }
+
+  /**
+   * Serialize to gRPC wire format
+   */
+  serialize(): Uint8Array {
+    // Implementation would depend on the specific protobuf library
+    // This is a placeholder for the actual serialization logic
+    return new Uint8Array();
+  }
+
+  /**
+   * Deserialize from gRPC wire format
+   */
+  static deserialize(data: Uint8Array): {{class_name type.name}}Message {
+    // Implementation would depend on the specific protobuf library
+    // This is a placeholder for the actual deserialization logic
+    return new {{class_name type.name}}Message();
+  }
+
+  /**
+   * Convert to plain object
+   */
+  toObject(): {{class_name type.name}} {
+    return {
+      {{#each type.properties}}
+      {{camel_case name}}: this.{{camel_case name}},
+      {{/each}}
+    };
+  }
+
+  /**
+   * Convert to JSON string
+   */
+  toJSON(): string {
+    return JSON.stringify(this.toObject());
+  }
+
+  /**
+   * Create from plain object
+   */
+  static fromObject(obj: {{class_name type.name}}): {{class_name type.name}}Message {
+    return new {{class_name type.name}}Message(obj);
+  }
+
+  /**
+   * Create from JSON string
+   */
+  static fromJSON(json: string): {{class_name type.name}}Message {
+    return {{class_name type.name}}Message.fromObject(JSON.parse(json));
+  }
+
+  /**
+   * Validate the message
+   */
+  validate(): string[] {
+    const errors: string[] = [];
+    
+    {{#each type.properties}}
+    {{#if required}}
+    if (this.{{camel_case name}} === undefined || this.{{camel_case name}} === null) {
+      errors.push('{{camel_case name}} is required');
+    }
+    {{/if}}
+    {{#if validation}}
+    {{#if validation.min_length}}
+    if (typeof this.{{camel_case name}} === 'string' && this.{{camel_case name}}.length < {{validation.min_length}}) {
+      errors.push('{{camel_case name}} must be at least {{validation.min_length}} characters');
+    }
+    {{/if}}
+    {{#if validation.max_length}}
+    if (typeof this.{{camel_case name}} === 'string' && this.{{camel_case name}}.length > {{validation.max_length}}) {
+      errors.push('{{camel_case name}} must be no more than {{validation.max_length}} characters');
+    }
+    {{/if}}
+    {{#if validation.min_value}}
+    if (typeof this.{{camel_case name}} === 'number' && this.{{camel_case name}} < {{validation.min_value}}) {
+      errors.push('{{camel_case name}} must be at least {{validation.min_value}}');
+    }
+    {{/if}}
+    {{#if validation.max_value}}
+    if (typeof this.{{camel_case name}} === 'number' && this.{{camel_case name}} > {{validation.max_value}}) {
+      errors.push('{{camel_case name}} must be at most {{validation.max_value}}');
+    }
+    {{/if}}
+    {{/if}}
+    {{/each}}
+    
+    return errors;
+  }
+
+  /**
+   * Clone the message
+   */
+  clone(): {{class_name type.name}}Message {
+    return new {{class_name type.name}}Message(this.toObject());
+  }
+
+  /**
+   * Check equality with another message
+   */
+  equals(other: {{class_name type.name}}Message): boolean {
+    {{#each type.properties}}
+    if (this.{{camel_case name}} !== other.{{camel_case name}}) {
+      return false;
+    }
+    {{/each}}
+    return true;
+  }
+}
+
+/**
+ * Type guard to check if an object is a valid {{class_name type.name}}
+ */
+export function is{{class_name type.name}}(obj: any): obj is {{class_name type.name}} {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+  
+  {{#each type.properties}}
+  {{#if required}}
+  if (!('{{camel_case name}}' in obj)) {
+    return false;
+  }
+  {{/if}}
+  {{/each}}
+  
+  return true;
+}
+
+/**
+ * Creates a new {{class_name type.name}} with default values
+ */
+export function create{{class_name type.name}}({{#each type.properties}}{{#if required}}{{camel_case name}}: {{grpc_type_mapping data_type}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}}): {{class_name type.name}} {
+  return {
+    {{#each type.properties}}
+    {{#if required}}
+    {{camel_case name}},
+    {{/if}}
+    {{/each}}
+  };
+}
+
+/**
+ * Validates a {{class_name type.name}} object
+ */
+export function validate{{class_name type.name}}(obj: {{class_name type.name}}): string[] {
+  const message = new {{class_name type.name}}Message(obj);
+  return message.validate();
+}
+
+/**
+ * gRPC service method request/response helpers
+ */
+export namespace {{class_name type.name}}Helpers {
+  /**
+   * Create a gRPC request for {{class_name type.name}}
+   */
+  export function createRequest(data: {{class_name type.name}}): {{class_name type.name}}Message {
+    return new {{class_name type.name}}Message(data);
+  }
+
+  /**
+   * Process a gRPC response for {{class_name type.name}}
+   */
+  export function processResponse(response: {{class_name type.name}}Message): {{class_name type.name}} {
+    return response.toObject();
+  }
+
+  /**
+   * Create a stream of requests
+   */
+  export function* createRequestStream(items: {{class_name type.name}}[]): Generator<{{class_name type.name}}Message> {
+    for (const item of items) {
+      yield new {{class_name type.name}}Message(item);
+    }
+  }
+
+  /**
+   * Process a stream of responses
+   */
+  export async function* processResponseStream(
+    stream: AsyncIterable<{{class_name type.name}}Message>
+  ): AsyncGenerator<{{class_name type.name}}> {
+    for await (const response of stream) {
+      yield response.toObject();
+    }
+  }
+}
+
+export default {{class_name type.name}};

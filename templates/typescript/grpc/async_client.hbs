@@ -1,0 +1,49 @@
+import { {{client_class_name}}, ClientConfig{{#if authentication}}, AuthConfig{{/if}} } from './client';
+
+/**
+ * {{api_name}} TypeScript gRPC SDK Async Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ * 
+ * Provides Promise-based async gRPC operations
+ */
+export class {{client_class_name}}Async {
+  private client: {{client_class_name}};
+
+  constructor(config: ClientConfig) {
+    this.client = new {{client_class_name}}(config);
+  }
+
+  {{#if authentication}}
+  {{#if supports_api_key}}
+  /**
+   * Update the API key for authentication
+   */
+  setApiKey(apiKey: string): void {
+    this.client.setApiKey(apiKey);
+  }
+  {{/if}}
+
+  {{#if supports_bearer_auth}}
+  /**
+   * Update the bearer token for authentication
+   */
+  setBearerToken(token: string): void {
+    this.client.setBearerToken(token);
+  }
+  {{/if}}
+  {{/if}}
+
+  {{#each services}}
+  {{#each methods}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} operation{{/if}} (Async)
+   */
+  async {{camel_case name}}Async(request: {{request_type}}): Promise<{{response_type}}> {
+    // In TypeScript/JavaScript, all operations are naturally async
+    return this.client.{{camel_case name}}(request);
+  }
+
+  {{/each}}
+  {{/each}}
+}

@@ -1,0 +1,442 @@
+# {{api_name}} API Documentation
+
+{{#if description}}{{description}}{{/if}}
+
+This document provides detailed information about the {{api_name}} API and how to use it with the TypeScript SDK.
+
+## Base URL
+
+```
+{{base_url}}
+```
+
+## Authentication
+
+{{#if authentication}}
+{{#if supports_bearer_auth}}
+### Bearer Token Authentication
+
+Include the bearer token in the Authorization header:
+
+```http
+Authorization: Bearer <your-token>
+```
+
+**TypeScript SDK Usage:**
+```typescript
+const client = new {{class_name}}({
+  baseURL: '{{base_url}}',
+  auth: {
+    bearerToken: 'your-token-here'
+  }
+});
+```
+{{/if}}
+
+{{#if supports_api_key}}
+### API Key Authentication
+
+Include the API key in the request headers:
+
+```http
+X-API-Key: <your-api-key>
+```
+
+**TypeScript SDK Usage:**
+```typescript
+const client = new {{class_name}}({
+  baseURL: '{{base_url}}',
+  auth: {
+    apiKey: 'your-api-key-here'
+  }
+});
+```
+{{/if}}
+{{else}}
+No authentication required.
+{{/if}}
+
+## Endpoints
+
+{{#each operations}}
+### {{name}}
+
+{{#if description}}{{description}}{{/if}}
+
+**Endpoint:** `{{method_upper}} {{path}}`
+
+{{#if parameters}}
+#### Parameters
+
+{{#each parameters}}
+- **{{name}}** ({{data_type}}) - {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}
+  - Location: {{parameter_type}}
+  - Required: {{#if required}}Yes{{else}}No{{/if}}
+  {{#if default_value}}
+  - Default: `{{default_value}}`
+  {{/if}}
+  {{#if enum_values}}
+  - Allowed values: {{#each enum_values}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+  {{/if}}
+
+{{/each}}
+{{/if}}
+
+{{#if request_body}}
+#### Request Body
+
+```json
+{{json_schema request_body}}
+```
+{{/if}}
+
+#### Response
+
+{{#each responses}}
+{{#if @first}}
+**Success Response ({{status_code}}):**
+
+{{#if data_type}}
+```json
+{{json_schema data_type}}
+```
+{{else}}
+No response body.
+{{/if}}
+
+{{#if description}}{{description}}{{/if}}
+{{/if}}
+{{/each}}
+
+#### TypeScript SDK Usage
+
+```typescript
+{{#if parameters}}
+// Define parameters
+const params = {
+  {{#each parameters}}
+  {{camel_case name}}: {{#if (eq data_type "string")}}'example-value'{{else if (eq data_type "number")}}123{{else if (eq data_type "boolean")}}true{{else}}{}{{/if}}, // {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}
+  {{/each}}
+};
+
+{{/if}}
+{{#if request_body}}
+// Define request body
+const requestBody = {
+  // TODO: Define request body structure based on the API schema
+};
+
+{{/if}}
+try {
+  const result = await client.{{camel_case name}}({{#if parameters}}params{{/if}}{{#if request_body}}{{#if parameters}}, {{/if}}requestBody{{/if}});
+  console.log('{{name}} result:', result);
+} catch (error) {
+  console.error('{{name}} error:', error);
+}
+```
+
+#### cURL Example
+
+```bash
+curl -X {{method_upper}} \
+  '{{base_url}}{{path}}{{#if query_parameters}}?{{#each query_parameters}}{{name}}={{example_value}}{{#unless @last}}&{{/unless}}{{/each}}{{/if}}' \
+  {{#if authentication}}
+  {{#if supports_bearer_auth}}
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  {{/if}}
+  {{#if supports_api_key}}
+  -H 'X-API-Key: YOUR_API_KEY' \
+  {{/if}}
+  {{/if}}
+  {{#if request_body}}
+  -H 'Content-Type: application/json' \
+  -d '{
+    "example": "request body"
+  }' \
+  {{/if}}
+```
+
+---
+
+{{/each}}
+
+## Data Models
+
+{{#each types}}
+### {{name}}
+
+{{#if description}}{{description}}{{/if}}
+
+```typescript
+interface {{name}} {
+  {{#each properties}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} property{{/if}}
+   {{#if deprecated}}
+   * @deprecated This property is deprecated
+   {{/if}}
+   */
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{data_type}};
+  {{/each}}
+}
+```
+
+{{#if enum_values}}
+**Enum Values:**
+{{#each enum_values}}
+- `{{this}}`
+{{/each}}
+{{/if}}
+
+{{#each properties}}
+{{#if validation_rules}}
+**Validation Rules for {{name}}:**
+{{#each validation_rules}}
+- {{this}}
+{{/each}}
+{{/if}}
+{{/each}}
+
+**Usage Example:**
+
+```typescript
+import { {{name}}, create{{name}}, validate{{name}}, is{{name}} } from '{{package_name}}';
+
+// Create a new {{name}}
+const {{camel_case name}} = create{{name}}({{#each properties}}{{#if required}}{{#if (eq data_type "string")}}'example'{{else if (eq data_type "number")}}123{{else if (eq data_type "boolean")}}true{{else}}{}{{/if}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}});
+
+// Validate the object
+const errors = validate{{name}}({{camel_case name}});
+if (errors.length === 0) {
+  console.log('{{name}} is valid');
+}
+
+// Type guard check
+if (is{{name}}(someObject)) {
+  // TypeScript now knows someObject is of type {{name}}
+  console.log('Object is a {{name}}');
+}
+```
+
+---
+
+{{/each}}
+
+## Error Responses
+
+The API returns structured error responses in the following format:
+
+```typescript
+interface APIError {
+  status: number;        // HTTP status code
+  message: string;       // Error message
+  code?: string;         // Optional error code
+  details?: string;      // Optional error details
+}
+```
+
+### Common Error Status Codes
+
+- **400 Bad Request**: Invalid request parameters or body
+- **401 Unauthorized**: Missing or invalid authentication
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **422 Unprocessable Entity**: Validation errors
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Server error
+
+### Error Handling in TypeScript
+
+```typescript
+import { APIClientError } from '{{package_name}}';
+
+try {
+  const result = await client.someMethod();
+  // Handle successful response
+} catch (error) {
+  if (error instanceof APIClientError) {
+    console.error(`API Error ${error.status}: ${error.message}`);
+    
+    switch (error.status) {
+      case 400:
+        console.error('Bad request - check your parameters');
+        break;
+      case 401:
+        console.error('Unauthorized - check your credentials');
+        break;
+      case 404:
+        console.error('Resource not found');
+        break;
+      case 429:
+        console.error('Rate limit exceeded - try again later');
+        break;
+      default:
+        console.error('Unexpected API error');
+    }
+  } else {
+    console.error('Network or other error:', error);
+  }
+}
+```
+
+## Rate Limiting
+
+{{#if rate_limiting}}
+The API enforces rate limiting to ensure fair usage:
+
+- **Rate Limit**: {{rate_limit_requests}} requests per {{rate_limit_window}}
+- **Rate Limit Headers**: The API includes rate limit information in response headers:
+  - `X-RateLimit-Limit`: Maximum number of requests allowed
+  - `X-RateLimit-Remaining`: Number of requests remaining in the current window
+  - `X-RateLimit-Reset`: Timestamp when the rate limit resets
+
+When rate limits are exceeded, the API returns a `429 Too Many Requests` response.
+{{else}}
+Rate limiting information is not specified for this API.
+{{/if}}
+
+## Pagination
+
+{{#if pagination}}
+Some endpoints support pagination using the following parameters:
+
+- `page`: Page number (starting from 1)
+- `limit`: Number of items per page (default: 20, maximum: 100)
+
+**Response Format:**
+```typescript
+interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+```
+
+**Example:**
+```typescript
+const result = await client.getItems({ page: 1, limit: 50 });
+console.log('Items:', result.data);
+console.log('Total items:', result.meta.total);
+console.log('Has more pages:', result.meta.hasNext);
+```
+{{else}}
+Pagination is not specified for this API.
+{{/if}}
+
+## SDK Features
+
+### Automatic Retry
+
+{{#if features.retry}}
+The SDK automatically retries failed requests with exponential backoff:
+
+- **Max Retries**: 3 attempts by default
+- **Retry Conditions**: Network errors, timeouts, and 5xx server errors
+- **Backoff Strategy**: Exponential backoff with jitter
+
+**Configuration:**
+```typescript
+const client = new {{class_name}}({
+  baseURL: '{{base_url}}',
+  retry: {
+    maxRetries: 5,
+    baseDelay: 1000,
+    maxDelay: 10000,
+  }
+});
+```
+{{else}}
+Automatic retry is not configured for this SDK.
+{{/if}}
+
+### Response Caching
+
+{{#if features.caching}}
+The SDK supports response caching to improve performance:
+
+- **Default TTL**: 5 minutes
+- **Cache Size**: 1000 responses by default
+- **Cache Key**: Based on method and parameters
+
+**Configuration:**
+```typescript
+const client = new {{class_name}}({
+  baseURL: '{{base_url}}',
+  cache: {
+    enabled: true,
+    ttl: 300000, // 5 minutes
+    maxSize: 1000,
+  }
+});
+```
+{{else}}
+Response caching is not configured for this SDK.
+{{/if}}
+
+### Request Timeout
+
+All requests have a configurable timeout:
+
+```typescript
+const client = new {{class_name}}({
+  baseURL: '{{base_url}}',
+  timeout: 30000, // 30 seconds
+});
+```
+
+### Request Cancellation
+
+Requests can be cancelled using AbortController:
+
+```typescript
+const controller = new AbortController();
+
+// Cancel the request after 5 seconds
+setTimeout(() => controller.abort(), 5000);
+
+try {
+  const result = await client.someMethod(params, {
+    signal: controller.signal
+  });
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request was cancelled');
+  }
+}
+```
+
+## TypeScript Support
+
+The SDK provides full TypeScript support with:
+
+- **Type Definitions**: Complete TypeScript definitions for all API operations and data models
+- **Type Guards**: Runtime type checking functions for all data models
+- **Generic Types**: Support for generic response types and pagination
+- **Strict Null Checks**: Compatible with strict TypeScript configurations
+
+## Browser and Node.js Support
+
+The SDK works in both browser and Node.js environments:
+
+### Browser
+- Modern browsers with fetch API support
+- Works with bundlers like Webpack, Rollup, Vite
+- Supports both ES modules and CommonJS
+
+### Node.js
+- Node.js 16.0.0 or higher
+- Uses node-fetch for HTTP requests
+- Full async/await support
+
+## Contributing
+
+This SDK is generated automatically from the API specification. To report issues or request features, please contact the API provider.
+
+## Support
+
+For API-related questions and support, please refer to the API provider's documentation or support channels.

@@ -1,0 +1,152 @@
+package {{package}};
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+// gRPC imports
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.Iterator;
+
+// Generated proto imports (would be generated from .proto files)
+// import {{java_package}}.UserServiceGrpc;
+// import {{java_package}}.*;
+
+/**
+ * {{spec.description}}
+ * 
+ * Generated gRPC client for {{spec.name}} v{{spec.version}}
+ */
+public class {{class_name spec.name}}Client {
+    
+    private final ManagedChannel channel;
+    private final ExecutorService executor;
+    // In real implementation, these would be generated from proto:
+    // private final UserServiceGrpc.UserServiceBlockingStub blockingStub;
+    // private final UserServiceGrpc.UserServiceStub asyncStub;
+    
+    {{#if features.telemetry}}
+    private final TelemetryHandler telemetryHandler;
+    {{/if}}
+    
+    {{#if features.caching}}
+    private final CacheHandler cacheHandler;
+    {{/if}}
+    
+    public {{class_name spec.name}}Client(String host, int port) {
+        this.channel = ManagedChannelBuilder.forAddress(host, port)
+            .usePlaintext() // Use .useTransportSecurity() for TLS
+            .build();
+        this.executor = Executors.newFixedThreadPool(4);
+        
+        // In real implementation:
+        // this.blockingStub = UserServiceGrpc.newBlockingStub(channel);
+        // this.asyncStub = UserServiceGrpc.newStub(channel);
+        
+        {{#if features.telemetry}}
+        this.telemetryHandler = new TelemetryHandler();
+        {{/if}}
+        
+        {{#if features.caching}}
+        this.cacheHandler = new CacheHandler();
+        {{/if}}
+    }
+    
+    // Generated gRPC service methods
+    {{#each spec.operations}}
+    
+    /**
+     * {{description}}
+     * gRPC method: {{name}}
+     */
+    public {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}Void{{/if}}{{/if}}{{/each}} {{camel_case name}}({{#if request_body}}{{type_mapping request_body}}{{else}}com.google.protobuf.Empty{{/if}} request) throws StatusRuntimeException {
+        {{#if ../features.telemetry}}
+        long startTime = System.currentTimeMillis();
+        {{/if}}
+        
+        try {
+            // Generated gRPC call would be:
+            // return blockingStub.{{camel_case name}}(request);
+            
+            // For now, throw unsupported operation with method info
+            throw new UnsupportedOperationException(
+                "gRPC method {{name}} not implemented. " +
+                "This client template shows the structure. " +
+                "Generate actual gRPC stubs from .proto files using protoc with grpc-java plugin."
+            );
+        } catch (StatusRuntimeException e) {
+            {{#if ../features.telemetry}}
+            long duration = System.currentTimeMillis() - startTime;
+            telemetryHandler.recordRequest("{{name}}", "grpc", duration, false);
+            {{/if}}
+            throw new {{class_name ../spec.name}}Exception("gRPC call {{name}} failed: " + e.getStatus(), e);
+        } {{#if ../features.telemetry}}finally {
+            long duration = System.currentTimeMillis() - startTime;
+            telemetryHandler.recordRequest("{{name}}", "grpc", duration, true);
+        }{{/if}}
+    }
+    
+    /**
+     * {{description}} (Async)
+     * gRPC method: {{name}}
+     */
+    public CompletableFuture<{{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}Void{{/if}}{{/if}}{{/each}}> {{camel_case name}}Async({{#if request_body}}{{type_mapping request_body}}{{else}}com.google.protobuf.Empty{{/if}} request) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return {{camel_case name}}(request);
+            } catch (StatusRuntimeException e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
+    }
+    {{/each}}
+    
+    /**
+     * Shutdown the gRPC client and release resources
+     */
+    public void shutdown() throws InterruptedException {
+        if (channel != null && !channel.isShutdown()) {
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        }
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+    
+    /**
+     * Force shutdown the gRPC client immediately
+     */
+    public void shutdownNow() {
+        if (channel != null && !channel.isShutdown()) {
+            channel.shutdownNow();
+        }
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdownNow();
+        }
+    }
+    
+    /**
+     * Check if the channel is terminated
+     */
+    public boolean isTerminated() {
+        return channel == null || channel.isTerminated();
+    }
+    
+    public static class {{class_name spec.name}}Exception extends RuntimeException {
+        public {{class_name spec.name}}Exception(String message) {
+            super(message);
+        }
+        
+        public {{class_name spec.name}}Exception(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+}

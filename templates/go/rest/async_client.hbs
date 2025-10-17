@@ -1,0 +1,45 @@
+package {{package_name}}
+
+import (
+	"context"
+	"fmt"
+)
+
+// {{class_name}}AsyncClient provides async operations for {{api_name}}
+// In Go, this is typically handled through goroutines and channels
+type {{class_name}}AsyncClient struct {
+	client *{{class_name}}
+}
+
+// New{{class_name}}Async creates a new async client
+func New{{class_name}}Async(config ClientConfig) *{{class_name}}AsyncClient {
+	return &{{class_name}}AsyncClient{
+		client: New{{class_name}}(config),
+	}
+}
+
+{{#each operations}}
+// {{go_name name}}Async {{#if description}}{{description}}{{else}}{{name}} operation{{/if}} (Async)
+func (c *{{../class_name}}AsyncClient) {{go_name name}}Async(ctx context.Context{{#each parameters}}, {{camelCase name}} {{go_type}}{{/each}}) <-chan {{go_name name}}Result {
+	resultChan := make(chan {{go_name name}}Result, 1)
+	
+	go func() {
+		defer close(resultChan)
+		
+		result, err := c.client.{{go_name name}}(ctx{{#each parameters}}, {{camelCase name}}{{/each}})
+		resultChan <- {{go_name name}}Result{
+			Data:  result,
+			Error: err,
+		}
+	}()
+	
+	return resultChan
+}
+
+// {{go_name name}}Result holds the result of {{go_name name}} operation
+type {{go_name name}}Result struct {
+	Data  {{response_type}}
+	Error error
+}
+
+{{/each}}

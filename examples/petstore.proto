@@ -1,0 +1,437 @@
+syntax = "proto3";
+
+package userservice.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/example/userservice/gen/go/userservice/v1;userservicev1";
+option java_package = "com.example.userservice.v1";
+option java_multiple_files = true;
+option java_outer_classname = "UserServiceProto";
+
+// User management service for authentication and profile management
+service UserService {
+  // Authentication operations
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/register"
+      body: "*"
+    };
+  }
+  
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login"
+      body: "*"
+    };
+  }
+  
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+  }
+  
+  rpc LogoutUser(LogoutUserRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+  }
+  
+  // User profile operations
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{user_id}"
+    };
+  }
+  
+  rpc GetCurrentUser(google.protobuf.Empty) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/me"
+    };
+  }
+  
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/users/{user_id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/users/{user_id}"
+    };
+  }
+  
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users"
+    };
+  }
+  
+  // Password management
+  rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/users/{user_id}/password"
+      body: "*"
+    };
+  }
+  
+  rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/reset-password"
+      body: "*"
+    };
+  }
+  
+  // Email verification
+  rpc SendVerificationEmail(SendVerificationEmailRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/send-verification"
+      body: "*"
+    };
+  }
+  
+  rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-email"
+      body: "*"
+    };
+  }
+  
+  // User sessions and activity
+  rpc ListUserSessions(ListUserSessionsRequest) returns (ListUserSessionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{user_id}/sessions"
+    };
+  }
+  
+  rpc RevokeSession(RevokeSessionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/users/{user_id}/sessions/{session_id}"
+    };
+  }
+  
+  // User preferences
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{user_id}/preferences"
+    };
+  }
+  
+  rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/users/{user_id}/preferences"
+      body: "*"
+    };
+  }
+  
+  // Streaming operations
+  rpc StreamUserEvents(StreamUserEventsRequest) returns (stream UserEvent);
+  
+  rpc BatchUpdateUsers(stream BatchUpdateUsersRequest) returns (BatchUpdateUsersResponse);
+}
+
+// Core user data model
+message User {
+  string user_id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string display_name = 6;
+  string avatar_url = 7;
+  UserStatus status = 8;
+  UserRole role = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  google.protobuf.Timestamp last_login_at = 12;
+  bool email_verified = 13;
+  UserMetadata metadata = 14;
+  UserPreferences preferences = 15;
+}
+
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_INACTIVE = 2;
+  USER_STATUS_SUSPENDED = 3;
+  USER_STATUS_DELETED = 4;
+  USER_STATUS_PENDING_VERIFICATION = 5;
+}
+
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_USER = 1;
+  USER_ROLE_MODERATOR = 2;
+  USER_ROLE_ADMIN = 3;
+  USER_ROLE_SUPER_ADMIN = 4;
+}
+
+message UserMetadata {
+  string timezone = 1;
+  string locale = 2;
+  string country_code = 3;
+  string ip_address = 4;
+  string user_agent = 5;
+  map<string, string> custom_fields = 6;
+}
+
+message UserPreferences {
+  bool email_notifications = 1;
+  bool push_notifications = 2;
+  bool sms_notifications = 3;
+  string theme = 4;
+  string language = 5;
+  NotificationSettings notification_settings = 6;
+  PrivacySettings privacy_settings = 7;
+}
+
+message NotificationSettings {
+  bool marketing_emails = 1;
+  bool security_alerts = 2;
+  bool product_updates = 3;
+  bool weekly_digest = 4;
+  repeated NotificationChannel channels = 5;
+}
+
+enum NotificationChannel {
+  NOTIFICATION_CHANNEL_UNSPECIFIED = 0;
+  NOTIFICATION_CHANNEL_EMAIL = 1;
+  NOTIFICATION_CHANNEL_SMS = 2;
+  NOTIFICATION_CHANNEL_PUSH = 3;
+  NOTIFICATION_CHANNEL_IN_APP = 4;
+}
+
+message PrivacySettings {
+  bool profile_visibility = 1;
+  bool show_online_status = 2;
+  bool allow_search_by_email = 3;
+  bool allow_friend_requests = 4;
+}
+
+message UserSession {
+  string session_id = 1;
+  string user_id = 2;
+  string device_id = 3;
+  string device_name = 4;
+  string ip_address = 5;
+  string user_agent = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp last_accessed_at = 8;
+  google.protobuf.Timestamp expires_at = 9;
+  bool is_active = 10;
+}
+
+message UserEvent {
+  string event_id = 1;
+  string user_id = 2;
+  UserEventType event_type = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> metadata = 5;
+}
+
+enum UserEventType {
+  USER_EVENT_TYPE_UNSPECIFIED = 0;
+  USER_EVENT_TYPE_REGISTERED = 1;
+  USER_EVENT_TYPE_LOGIN = 2;
+  USER_EVENT_TYPE_LOGOUT = 3;
+  USER_EVENT_TYPE_PASSWORD_CHANGED = 4;
+  USER_EVENT_TYPE_EMAIL_VERIFIED = 5;
+  USER_EVENT_TYPE_PROFILE_UPDATED = 6;
+  USER_EVENT_TYPE_STATUS_CHANGED = 7;
+  USER_EVENT_TYPE_DELETED = 8;
+}
+
+// Request/Response messages for authentication
+message RegisterUserRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;
+  string first_name = 4;
+  string last_name = 5;
+  UserMetadata metadata = 6;
+}
+
+message RegisterUserResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message LoginUserRequest {
+  string email = 1;
+  string password = 2;
+  bool remember_me = 3;
+  UserMetadata metadata = 4;
+}
+
+message LoginUserResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message LogoutUserRequest {
+  string session_id = 1;
+  bool logout_all_sessions = 2;
+}
+
+// Request/Response messages for user management
+message GetUserRequest {
+  string user_id = 1;
+  bool include_preferences = 2;
+  bool include_sessions = 3;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string display_name = 4;
+  string avatar_url = 5;
+  UserMetadata metadata = 6;
+  repeated string update_mask = 7; // Field mask for partial updates
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+  bool hard_delete = 2; // If false, soft delete (set status to DELETED)
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  UserStatus status_filter = 3;
+  UserRole role_filter = 4;
+  string search_query = 5; // Search by email, username, or display name
+  SortBy sort_by = 6;
+  SortOrder sort_order = 7;
+}
+
+enum SortBy {
+  SORT_BY_UNSPECIFIED = 0;
+  SORT_BY_CREATED_AT = 1;
+  SORT_BY_UPDATED_AT = 2;
+  SORT_BY_LAST_LOGIN_AT = 3;
+  SORT_BY_EMAIL = 4;
+  SORT_BY_USERNAME = 5;
+}
+
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_ASC = 1;
+  SORT_ORDER_DESC = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// Request/Response messages for password management
+message ChangePasswordRequest {
+  string user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+  string reset_url = 2; // URL to redirect user to after reset
+}
+
+// Request/Response messages for email verification
+message SendVerificationEmailRequest {
+  string user_id = 1;
+  string verification_url = 2; // URL to redirect user to after verification
+}
+
+message VerifyEmailRequest {
+  string verification_token = 1;
+}
+
+// Request/Response messages for sessions
+message ListUserSessionsRequest {
+  string user_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  bool active_only = 4;
+}
+
+message ListUserSessionsResponse {
+  repeated UserSession sessions = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message RevokeSessionRequest {
+  string user_id = 1;
+  string session_id = 2;
+}
+
+// Request/Response messages for preferences
+message GetUserPreferencesRequest {
+  string user_id = 1;
+}
+
+message GetUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+message UpdateUserPreferencesRequest {
+  string user_id = 1;
+  UserPreferences preferences = 2;
+  repeated string update_mask = 3; // Field mask for partial updates
+}
+
+message UpdateUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Streaming request/response messages
+message StreamUserEventsRequest {
+  string user_id = 1;
+  repeated UserEventType event_types = 2; // Filter by specific event types
+}
+
+message BatchUpdateUsersRequest {
+  repeated UpdateUserRequest updates = 1;
+}
+
+message BatchUpdateUsersResponse {
+  repeated UpdateUserResponse results = 1;
+  repeated BatchError errors = 2;
+}
+
+message BatchError {
+  int32 index = 1; // Index of the failed request in the batch
+  string error_code = 2;
+  string error_message = 3;
+}

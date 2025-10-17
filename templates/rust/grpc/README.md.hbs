@@ -1,0 +1,242 @@
+# {{class_name spec.name}} Rust gRPC SDK
+
+Auto-generated Rust gRPC SDK for {{spec.name}}.
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+{{kebab_case package}} = "{{version}}"
+tokio = { version = "1.0", features = ["full"] }
+tonic = "0.10"
+```
+
+## Usage
+
+```rust
+use {{snake_case package}}::{{class_name spec.name}}Client;
+use {{snake_case package}}::ClientConfig;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = ClientConfig::new("https://api.example.com:443")
+        .with_tls(true)
+        .with_timeout(std::time::Duration::from_secs(30));
+    
+    let mut client = {{class_name spec.name}}Client::connect(config).await?;
+
+    // Use the client to make gRPC calls
+    // let request = tonic::Request::new(SomeRequest { ... });
+    // let response = client.some_method(request).await?;
+
+    Ok(())
+}
+```
+
+## Configuration
+
+The client can be configured with various options:
+
+- `endpoint`: The gRPC server endpoint (with scheme and port)
+- `tls_enabled`: Enable TLS/SSL connection
+- `timeout`: Request timeout duration
+- `max_message_size`: Maximum message size in bytes
+- `keepalive_interval`: Keepalive ping interval
+- `keepalive_timeout`: Keepalive timeout duration
+
+### TLS Configuration
+
+```rust
+use {{snake_case package}}::ClientConfig;
+
+let config = ClientConfig::new("https://api.example.com:443")
+    .with_tls(true)
+    .with_tls_ca_certificate_from_pem(ca_cert_pem)
+    .with_tls_client_identity_from_pem(client_cert_pem, client_key_pem);
+```
+
+### Authentication
+
+#### API Key Authentication
+
+```rust
+let config = ClientConfig::new("https://api.example.com:443")
+    .with_api_key("your-api-key");
+```
+
+#### OAuth2 Bearer Token
+
+```rust
+let config = ClientConfig::new("https://api.example.com:443")
+    .with_bearer_token("your-oauth-token");
+```
+
+{{#if features.retry}}
+### Retry Configuration
+
+The client supports automatic retries with exponential backoff:
+
+```rust
+use {{snake_case package}}::RetryConfig;
+
+let config = ClientConfig::new("https://api.example.com:443")
+    .with_retry_config(RetryConfig {
+        max_attempts: 5,
+        initial_delay: std::time::Duration::from_millis(200),
+        max_delay: std::time::Duration::from_secs(30),
+        backoff_factor: 2.0,
+    });
+```
+{{/if}}
+
+{{#if features.compression}}
+### Compression
+
+Enable gRPC compression for requests and responses:
+
+```rust
+let config = ClientConfig::new("https://api.example.com:443")
+    .with_compression(tonic::codec::CompressionEncoding::Gzip);
+```
+{{/if}}
+
+## Service Methods
+
+{{#each spec.services}}
+### {{name}} Service
+
+{{#if description}}{{description}}{{/if}}
+
+```rust
+use {{../snake_case ../package}}::{{snake_case name}}_client::{{class_name name}}Client;
+
+let mut client = {{class_name name}}Client::connect(config).await?;
+```
+
+{{#each methods}}
+#### {{name}}
+
+{{#if description}}{{description}}{{/if}}
+
+```rust
+{{#if client_streaming}}
+// Client streaming
+use tokio_stream::{self as stream, StreamExt};
+
+let request_stream = stream::iter(vec![
+    {{class_name request_type}} { /* fields */ },
+    {{class_name request_type}} { /* fields */ },
+]);
+
+let request = tonic::Request::new(request_stream);
+let response = client.{{snake_case name}}(request).await?;
+{{else if server_streaming}}
+// Server streaming
+let request = tonic::Request::new({{class_name request_type}} {
+    // fields
+});
+
+let mut stream = client.{{snake_case name}}(request).await?.into_inner();
+while let Some(response) = stream.next().await {
+    let response = response?;
+    println!("Received: {:?}", response);
+}
+{{else if bidirectional_streaming}}
+// Bidirectional streaming
+let request_stream = stream::iter(vec![
+    {{class_name request_type}} { /* fields */ },
+]);
+
+let request = tonic::Request::new(request_stream);
+let mut stream = client.{{snake_case name}}(request).await?.into_inner();
+
+while let Some(response) = stream.next().await {
+    let response = response?;
+    println!("Received: {:?}", response);
+}
+{{else}}
+// Unary call
+let request = tonic::Request::new({{class_name request_type}} {
+    // fields
+});
+
+let response = client.{{snake_case name}}(request).await?;
+println!("Response: {:?}", response.into_inner());
+{{/if}}
+```
+
+{{/each}}
+{{/each}}
+
+## Error Handling
+
+The SDK provides comprehensive error handling:
+
+```rust
+use {{snake_case package}}::{{class_name spec.name}}Error;
+
+match client.some_method(request).await {
+    Ok(response) => println!("Success: {:?}", response),
+    Err(status) => {
+        match status.code() {
+            tonic::Code::NotFound => eprintln!("Resource not found"),
+            tonic::Code::PermissionDenied => eprintln!("Permission denied"),
+            tonic::Code::Unavailable => eprintln!("Service unavailable"),
+            _ => eprintln!("gRPC error: {}", status.message()),
+        }
+    }
+}
+```
+
+## Interceptors
+
+Add custom interceptors for logging, metrics, or authentication:
+
+```rust
+use tonic::service::Interceptor;
+
+struct AuthInterceptor {
+    token: String,
+}
+
+impl Interceptor for AuthInterceptor {
+    fn call(&mut self, mut request: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
+        request
+            .metadata_mut()
+            .insert("authorization", format!("Bearer {}", self.token).parse().unwrap());
+        Ok(request)
+    }
+}
+
+let interceptor = AuthInterceptor {
+    token: "your-token".to_string(),
+};
+
+let client = {{class_name spec.name}}Client::with_interceptor(channel, interceptor);
+```
+
+## Health Checking
+
+Check service health:
+
+```rust
+use tonic_health::pb::health_client::HealthClient;
+
+let mut health_client = HealthClient::connect("https://api.example.com:443").await?;
+let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+    service: "{{spec.name}}".to_string(),
+});
+
+let response = health_client.check(request).await?;
+println!("Service health: {:?}", response.into_inner().status);
+```
+
+## License
+
+{{#if license}}
+This project is licensed under the {{license}} license.
+{{else}}
+See the project license for details.
+{{/if}}

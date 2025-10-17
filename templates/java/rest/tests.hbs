@@ -1,0 +1,113 @@
+package {{package}};
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for {{spec.name}} Client SDK
+ */
+public class {{class_name spec.name}}ClientTest {
+    
+    private {{class_name spec.name}}Client client;
+    private ClientConfig config;
+    
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        config = new ClientConfig("https://api.example.com")
+            .setConnectTimeoutSeconds(10)
+            .setRequestTimeoutSeconds(30);
+        client = new {{class_name spec.name}}Client(config);
+    }
+    
+    @Test
+    @DisplayName("Client should be created with valid configuration")
+    void testClientCreation() {
+        assertNotNull(client);
+        assertEquals("https://api.example.com", config.getBaseUrl());
+        assertEquals(10, config.getConnectTimeoutSeconds());
+        assertEquals(30, config.getRequestTimeoutSeconds());
+    }
+    
+    @Test
+    @DisplayName("Client configuration should support method chaining")
+    void testConfigurationChaining() {
+        ClientConfig chainedConfig = new ClientConfig("https://api.example.com")
+            .setConnectTimeoutSeconds(15)
+            .setRequestTimeoutSeconds(45)
+            .setUserAgent("test-client/1.0")
+            .setApiKey("test-key");
+            
+        assertEquals("https://api.example.com", chainedConfig.getBaseUrl());
+        assertEquals(15, chainedConfig.getConnectTimeoutSeconds());
+        assertEquals(45, chainedConfig.getRequestTimeoutSeconds());
+        assertEquals("test-client/1.0", chainedConfig.getUserAgent());
+        assertEquals("test-key", chainedConfig.getApiKey());
+    }
+    
+    {{#if features.async}}
+    @Test
+    @DisplayName("Async client should be created with valid configuration")
+    void testAsyncClientCreation() {
+        {{class_name spec.name}}AsyncClient asyncClient = new {{class_name spec.name}}AsyncClient(config);
+        assertNotNull(asyncClient);
+    }
+    {{/if}}
+    
+    {{#if features.retry}}
+    @Test
+    @DisplayName("Configuration should support retry settings")
+    void testRetryConfiguration() {
+        config.setRetryEnabled(true)
+              .setMaxRetries(5)
+              .setRetryDelayMs(2000);
+              
+        assertTrue(config.isRetryEnabled());
+        assertEquals(5, config.getMaxRetries());
+        assertEquals(2000, config.getRetryDelayMs());
+    }
+    {{/if}}
+    
+    {{#if features.caching}}
+    @Test
+    @DisplayName("Configuration should support caching settings")
+    void testCachingConfiguration() {
+        config.setCachingEnabled(true)
+              .setCacheMaxSize(500)
+              .setCacheTtlSeconds(600);
+              
+        assertTrue(config.isCachingEnabled());
+        assertEquals(500, config.getCacheMaxSize());
+        assertEquals(600, config.getCacheTtlSeconds());
+    }
+    {{/if}}
+    
+    {{#if features.telemetry}}
+    @Test
+    @DisplayName("Configuration should support telemetry settings")
+    void testTelemetryConfiguration() {
+        config.setTelemetryEnabled(true)
+              .setMetricsEndpoint("https://metrics.example.com");
+              
+        assertTrue(config.isTelemetryEnabled());
+        assertEquals("https://metrics.example.com", config.getMetricsEndpoint());
+    }
+    {{/if}}
+    
+    // Add specific API operation tests here
+    {{#each spec.operations}}
+    @Test
+    @DisplayName("Should handle {{name}} operation")
+    void test{{class_name name}}Operation() {
+        // TODO: Implement test for {{name}} operation
+        // This test should mock HTTP responses and verify the client behavior
+        assertTrue(true, "Test not yet implemented");
+    }
+    
+    {{/each}}
+}

@@ -1,0 +1,207 @@
+/**
+ * {{type.description}}
+ {{#if type.deprecated}}
+ * @deprecated This type is deprecated
+ {{/if}}
+ */
+export interface {{class_name type.name}} {
+  {{#each type.properties}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} property{{/if}}
+   {{#if deprecated}}
+   * @deprecated This property is deprecated
+   {{/if}}
+   */
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{type_mapping data_type}};
+  {{/each}}
+  {{#if type.additional_properties}}
+  
+  /**
+   * Additional properties not defined in the GraphQL schema
+   */
+  [key: string]: any;
+  {{/if}}
+}
+
+{{#if type.enum_values}}
+/**
+ * Enum values for {{class_name type.name}}
+ */
+export const {{class_name type.name}}Values = {
+  {{#each type.enum_values}}
+  {{upper_case this}}: '{{this}}' as const,
+  {{/each}}
+} as const;
+
+export type {{class_name type.name}}Value = typeof {{class_name type.name}}Values[keyof typeof {{class_name type.name}}Values];
+{{/if}}
+
+/**
+ * GraphQL input type for {{class_name type.name}}
+ */
+export interface {{class_name type.name}}Input {
+  {{#each type.properties}}
+  {{#if input_field}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} input field{{/if}}
+   */
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{input_type_mapping data_type}};
+  {{/if}}
+  {{/each}}
+}
+
+/**
+ * GraphQL filter type for {{class_name type.name}}
+ */
+export interface {{class_name type.name}}Filter {
+  {{#each type.properties}}
+  {{#if filterable}}
+  /**
+   * Filter by {{name}}
+   */
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{filter_type_mapping data_type}};
+  {{/if}}
+  {{/each}}
+  
+  /**
+   * Logical operators
+   */
+  AND?: {{class_name type.name}}Filter[];
+  OR?: {{class_name type.name}}Filter[];
+  NOT?: {{class_name type.name}}Filter;
+}
+
+/**
+ * GraphQL ordering type for {{class_name type.name}}
+ */
+export interface {{class_name type.name}}OrderBy {
+  {{#each type.properties}}
+  {{#if sortable}}
+  {{camel_case name}}?: 'ASC' | 'DESC';
+  {{/if}}
+  {{/each}}
+}
+
+/**
+ * Type guard to check if an object is a valid {{class_name type.name}}
+ */
+export function is{{class_name type.name}}(obj: any): obj is {{class_name type.name}} {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+  
+  {{#each type.properties}}
+  {{#if required}}
+  if (!('{{camel_case name}}' in obj)) {
+    return false;
+  }
+  {{/if}}
+  {{/each}}
+  
+  return true;
+}
+
+/**
+ * Creates a new {{class_name type.name}} with default values
+ */
+export function create{{class_name type.name}}({{#each type.properties}}{{#if required}}{{camel_case name}}: {{type_mapping data_type}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}}): {{class_name type.name}} {
+  return {
+    {{#each type.properties}}
+    {{#if required}}
+    {{camel_case name}},
+    {{/if}}
+    {{/each}}
+  };
+}
+
+/**
+ * Validates a {{class_name type.name}} object
+ */
+export function validate{{class_name type.name}}(obj: {{class_name type.name}}): string[] {
+  const errors: string[] = [];
+  
+  {{#each type.properties}}
+  {{#if required}}
+  if (obj.{{camel_case name}} === undefined || obj.{{camel_case name}} === null) {
+    errors.push('{{camel_case name}} is required');
+  }
+  {{/if}}
+  {{#if validation}}
+  {{#if validation.min_length}}
+  if (typeof obj.{{camel_case name}} === 'string' && obj.{{camel_case name}}.length < {{validation.min_length}}) {
+    errors.push('{{camel_case name}} must be at least {{validation.min_length}} characters');
+  }
+  {{/if}}
+  {{#if validation.max_length}}
+  if (typeof obj.{{camel_case name}} === 'string' && obj.{{camel_case name}}.length > {{validation.max_length}}) {
+    errors.push('{{camel_case name}} must be no more than {{validation.max_length}} characters');
+  }
+  {{/if}}
+  {{#if validation.pattern}}
+  if (typeof obj.{{camel_case name}} === 'string' && !{{validation.pattern}}.test(obj.{{camel_case name}})) {
+    errors.push('{{camel_case name}} format is invalid');
+  }
+  {{/if}}
+  {{/if}}
+  {{/each}}
+  
+  return errors;
+}
+
+/**
+ * GraphQL fragment for {{class_name type.name}}
+ */
+export const {{class_name type.name}}Fragment = `
+  fragment {{class_name type.name}}Fragment on {{class_name type.name}} {
+    {{#each type.properties}}
+    {{camel_case name}}
+    {{/each}}
+  }
+`;
+
+/**
+ * GraphQL query to fetch {{class_name type.name}} by ID
+ */
+export const get{{class_name type.name}}Query = `
+  query Get{{class_name type.name}}($id: ID!) {
+    {{camel_case type.name}}(id: $id) {
+      ...{{class_name type.name}}Fragment
+    }
+  }
+  ${{{class_name type.name}}Fragment}
+`;
+
+/**
+ * GraphQL mutation to create {{class_name type.name}}
+ */
+export const create{{class_name type.name}}Mutation = `
+  mutation Create{{class_name type.name}}($input: {{class_name type.name}}Input!) {
+    create{{class_name type.name}}(input: $input) {
+      ...{{class_name type.name}}Fragment
+    }
+  }
+  ${{{class_name type.name}}Fragment}
+`;
+
+/**
+ * GraphQL mutation to update {{class_name type.name}}
+ */
+export const update{{class_name type.name}}Mutation = `
+  mutation Update{{class_name type.name}}($id: ID!, $input: {{class_name type.name}}Input!) {
+    update{{class_name type.name}}(id: $id, input: $input) {
+      ...{{class_name type.name}}Fragment
+    }
+  }
+  ${{{class_name type.name}}Fragment}
+`;
+
+/**
+ * GraphQL mutation to delete {{class_name type.name}}
+ */
+export const delete{{class_name type.name}}Mutation = `
+  mutation Delete{{class_name type.name}}($id: ID!) {
+    delete{{class_name type.name}}(id: $id)
+  }
+`;
+
+export default {{class_name type.name}};

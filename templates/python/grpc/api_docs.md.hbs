@@ -1,0 +1,173 @@
+# {{package}} gRPC API Documentation
+
+Generated gRPC API documentation for {{package}}.
+
+## Client
+
+The main gRPC client class provides methods for interacting with the API.
+
+```python
+from {{package}} import GrpcClient, ClientConfig
+
+config = ClientConfig(
+    host="api.example.com",
+    port=443,
+    use_tls=True
+)
+client = GrpcClient(config)
+```
+
+## Service Methods
+
+{{#each spec.services}}
+### {{name}} Service
+
+{{#if description}}{{description}}{{else}}{{name}} gRPC service{{/if}}
+
+{{#each methods}}
+#### {{name}}
+
+{{#if description}}{{description}}{{else}}{{name}} method{{/if}}
+
+**Request Type:** `{{request_type}}`
+**Response Type:** `{{response_type}}`
+{{#if streaming}}
+**Streaming:** {{streaming_type}}
+{{/if}}
+
+```python
+# Example usage
+{{#if client_streaming}}
+# Client streaming
+def request_iterator():
+    for i in range(10):
+        yield create_{{snake_case request_type}}(data=f"item_{i}")
+
+response = client.{{snake_case name}}(request_iterator())
+{{else if server_streaming}}
+# Server streaming
+request = create_{{snake_case request_type}}(query="example")
+for response in client.{{snake_case name}}(request):
+    print(response)
+{{else if bidirectional_streaming}}
+# Bidirectional streaming
+def request_iterator():
+    for i in range(10):
+        yield create_{{snake_case request_type}}(data=f"item_{i}")
+
+for response in client.{{snake_case name}}(request_iterator()):
+    print(response)
+{{else}}
+# Unary call
+request = create_{{snake_case request_type}}({{#each request_fields}}{{#if required}}{{snake_case name}}="value"{{#unless @last}}, {{/unless}}{{/if}}{{/each}})
+response = client.{{snake_case name}}(request)
+{{/if}}
+```
+
+{{/each}}
+{{/each}}
+
+## Message Types
+
+{{#each spec.messages}}
+### {{name}}
+
+{{#if description}}{{description}}{{else}}{{name}} message type{{/if}}
+
+{{#if fields}}
+**Fields:**
+
+{{#each fields}}
+- `{{name}}` ({{field_type}}, {{#if required}}required{{else}}optional{{/if}}): {{#if description}}{{description}}{{else}}{{name}} field{{/if}}
+{{/each}}
+{{/if}}
+
+```python
+# Creating {{name}}
+from {{package}}.messages import {{name}}
+
+message = {{name}}(
+    {{#each fields}}
+    {{#if required}}
+    {{snake_case name}}={{#if (eq field_type "string")}}"example_value"{{else if (eq field_type "int32")}}123{{else if (eq field_type "int64")}}123{{else if (eq field_type "bool")}}True{{else}}None{{/if}}{{#unless @last}},{{/unless}}
+    {{/if}}
+    {{/each}}
+)
+```
+
+{{/each}}
+
+## Error Handling
+
+The gRPC client provides comprehensive error handling:
+
+```python
+import grpc
+from {{package}} import GrpcClient, GrpcError
+
+try:
+    response = client.some_method(request)
+except grpc.RpcError as e:
+    if e.code() == grpc.StatusCode.NOT_FOUND:
+        print("Resource not found")
+    elif e.code() == grpc.StatusCode.PERMISSION_DENIED:
+        print("Permission denied")
+    else:
+        print(f"gRPC error: {e.details()}")
+except GrpcError as e:
+    print(f"Client error: {e}")
+```
+
+## Authentication
+
+{{#if auth}}
+### API Key Authentication
+
+```python
+from {{package}} import GrpcClient, ClientConfig
+
+config = ClientConfig(
+    host="api.example.com",
+    port=443,
+    use_tls=True,
+    api_key="your-api-key"
+)
+client = GrpcClient(config)
+```
+
+### OAuth2 Authentication
+
+```python
+config = ClientConfig(
+    host="api.example.com", 
+    port=443,
+    use_tls=True,
+    oauth_token="your-oauth-token"
+)
+client = GrpcClient(config)
+```
+{{else}}
+This API does not require authentication.
+{{/if}}
+
+## Configuration Options
+
+- `host`: gRPC server hostname
+- `port`: gRPC server port (default: 443)
+- `use_tls`: Enable TLS/SSL (default: True)
+- `timeout_seconds`: Request timeout (default: 30)
+- `max_message_length`: Maximum message size in bytes
+- `keepalive_time_ms`: Keepalive time in milliseconds
+- `keepalive_timeout_ms`: Keepalive timeout in milliseconds
+
+```python
+config = ClientConfig(
+    host="api.example.com",
+    port=8443,
+    use_tls=True,
+    timeout_seconds=60,
+    max_message_length=1024*1024*4,  # 4MB
+    keepalive_time_ms=30000,
+    keepalive_timeout_ms=10000
+)
+```

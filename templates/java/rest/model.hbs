@@ -1,0 +1,87 @@
+package {{package}}.models;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+{{#if type.deprecated}}
+import java.lang.Deprecated;
+{{/if}}
+import java.util.Objects;
+
+/**
+ * {{type.description}}
+ {{#if type.deprecated}}
+ * @deprecated This type is deprecated
+ {{/if}}
+ */
+{{#if type.deprecated}}@Deprecated{{/if}}
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class {{class_name type.name}} {
+    
+    {{#each type.properties}}
+    {{#if description}}
+    /**
+     * {{description}}
+     {{#if deprecated}}
+     * @deprecated This property is deprecated
+     {{/if}}
+     */
+    {{/if}}
+    {{#if deprecated}}@Deprecated{{/if}}
+    @JsonProperty("{{name}}")
+    private {{type_mapping data_type}} {{camel_case name}};
+    
+    {{/each}}
+    
+    // Constructors
+    public {{class_name type.name}}() {
+    }
+    
+    {{#if type.properties}}
+    public {{class_name type.name}}({{#each type.properties}}{{type_mapping data_type}} {{camel_case name}}{{#unless @last}}, {{/unless}}{{/each}}) {
+        {{#each type.properties}}
+        this.{{camel_case name}} = {{camel_case name}};
+        {{/each}}
+    }
+    {{/if}}
+    
+    // Getters and Setters
+    {{#each type.properties}}
+    public {{type_mapping data_type}} get{{pascal_case name}}() {
+        return {{camel_case name}};
+    }
+    
+    public void set{{pascal_case name}}({{type_mapping data_type}} {{camel_case name}}) {
+        this.{{camel_case name}} = {{camel_case name}};
+    }
+    
+    public {{class_name ../type.name}} with{{pascal_case name}}({{type_mapping data_type}} {{camel_case name}}) {
+        this.{{camel_case name}} = {{camel_case name}};
+        return this;
+    }
+    
+    {{/each}}
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        {{class_name type.name}} that = ({{class_name type.name}}) o;
+        return {{#each type.properties}}Objects.equals({{camel_case name}}, that.{{camel_case name}}){{#unless @last}} &&
+               {{/unless}}{{/each}};
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash({{#each type.properties}}{{camel_case name}}{{#unless @last}}, {{/unless}}{{/each}});
+    }
+    
+    @Override
+    public String toString() {
+        return "{{class_name type.name}}{" +
+                {{#each type.properties}}
+                "{{camel_case name}}=" + {{camel_case name}} +{{#unless @last}}
+                ", " +{{/unless}}
+                {{/each}}
+                '}';
+    }
+}

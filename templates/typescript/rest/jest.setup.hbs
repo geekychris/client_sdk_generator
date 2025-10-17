@@ -1,0 +1,61 @@
+/**
+ * Jest setup file for {{spec.name}} TypeScript SDK tests
+ * This file runs before each test file
+ */
+
+// Mock global fetch if not available (Node.js environment)
+if (!global.fetch) {
+  const { default: fetch } = require('node-fetch');
+  global.fetch = fetch;
+}
+
+// Mock console methods to reduce noise during tests
+global.console = {
+  ...console,
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
+};
+
+// Mock performance API if not available
+if (!global.performance) {
+  global.performance = {
+    now: jest.fn(() => Date.now()),
+    mark: jest.fn(),
+    measure: jest.fn(),
+  };
+}
+
+// Mock window object for browser APIs if needed
+if (!global.window) {
+  global.window = {
+    location: {
+      origin: 'http://localhost',
+      href: 'http://localhost',
+    },
+  };
+}
+
+// Set default test timeout
+jest.setTimeout(30000);
+
+// Global test setup
+beforeAll(() => {
+  // Any global setup that needs to run before all tests
+});
+
+afterAll(() => {
+  // Any global cleanup that needs to run after all tests
+});
+
+beforeEach(() => {
+  // Reset all mocks before each test
+  jest.clearAllMocks();
+});
+
+afterEach(() => {
+  // Cleanup after each test
+  jest.restoreAllMocks();
+});

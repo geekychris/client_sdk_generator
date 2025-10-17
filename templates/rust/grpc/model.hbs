@@ -1,0 +1,94 @@
+//! {{type.description}}
+{{#if type.deprecated}}
+//! 
+//! **Deprecated:** This type is deprecated
+{{/if}}
+
+use serde::{Deserialize, Serialize};
+{{#if features.validation}}
+use validator::Validate;
+{{/if}}
+{{#each type.properties}}
+{{!-- TODO: Add proper import generation for complex types --}}
+{{/each}}
+
+/// {{type.description}}
+{{#if type.deprecated}}
+#[deprecated]
+{{/if}}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize{{#if features.validation}}, Validate{{/if}})]
+{{#if serde_rename_all}}
+#[serde(rename_all = "{{serde_rename_all}}")]
+{{/if}}
+pub struct {{class_name type.name}} {
+    {{#each type.properties}}
+    /// {{#if description}}{{description}}{{else}}{{name}} field{{/if}}
+    {{#if deprecated}}
+    #[deprecated]
+    {{/if}}
+    {{#if serde_rename}}
+    #[serde(rename = "{{serde_rename}}")]
+    {{/if}}
+    {{#unless required}}
+    #[serde(skip_serializing_if = "Option::is_none")]
+    {{/unless}}
+    {{#if validation_rules}}
+    {{#each validation_rules}}
+    #[validate({{this}})]
+    {{/each}}
+    {{/if}}
+    pub {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Option<{{type_mapping data_type}}>{{/if}},
+    {{/each}}
+}
+
+impl {{class_name type.name}} {
+    /// Create a new instance
+    pub fn new(
+        {{#each type.properties}}
+        {{#if required}}
+        {{snake_case name}}: {{type_mapping data_type}},
+        {{/if}}
+        {{/each}}
+    ) -> Self {
+        Self {
+            {{#each type.properties}}
+            {{#if required}}
+            {{snake_case name}},
+            {{else}}
+            {{snake_case name}}: None,
+            {{/if}}
+            {{/each}}
+        }
+    }
+    
+    {{#each type.properties}}
+    {{#unless required}}
+    /// Set {{snake_case name}}
+    pub fn with_{{snake_case name}}(mut self, {{snake_case name}}: {{type_mapping data_type}}) -> Self {
+        self.{{snake_case name}} = Some({{snake_case name}});
+        self
+    }
+    {{/unless}}
+    {{/each}}
+    
+    {{#if features.validation}}
+    /// Validate this instance
+    pub fn validate(&self) -> Result<(), validator::ValidationErrors> {
+        validator::Validate::validate(self)
+    }
+    {{/if}}
+}
+
+impl Default for {{class_name type.name}} {
+    fn default() -> Self {
+        Self {
+            {{#each type.properties}}
+            {{#if required}}
+            {{snake_case name}}: Default::default(),
+            {{else}}
+            {{snake_case name}}: None,
+            {{/if}}
+            {{/each}}
+        }
+    }
+}
