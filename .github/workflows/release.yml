@@ -46,13 +46,13 @@ jobs:
       - name: Add target
         run: rustup target add ${{ matrix.target }}
       
-      - name: Install cross-compilation tools (ARM64 Linux)
+      - name: Set up Docker Buildx (for cross)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo "[target.aarch64-unknown-linux-gnu]" >> ~/.cargo/config.toml
-          echo "linker = \"aarch64-linux-gnu-gcc\"" >> ~/.cargo/config.toml
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Install cross for ARM64 cross-compilation
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
 
       - name: Cache cargo registry and index
@@ -71,7 +71,12 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: Create archive directory
         run: mkdir -p archive
