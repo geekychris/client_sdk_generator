@@ -1,0 +1,218 @@
+package {{package}};
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+
+/**
+ * {{spec.description}}
+ * 
+ * Async Generated SDK for {{spec.name}} v{{spec.version}}
+ */
+public class {{class_name spec.name}}AsyncClient {
+    
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
+    private final String baseUrl;
+    private final ClientConfig config;
+    
+    {{#if features.telemetry}}
+    private final TelemetryHandler telemetryHandler;
+    {{/if}}
+    
+    {{#if features.caching}}
+    private final CacheHandler cacheHandler;
+    {{/if}}
+    
+    public {{class_name spec.name}}AsyncClient(ClientConfig config) {
+        this.config = config;
+        this.baseUrl = config.getBaseUrl();
+        
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(config.getConnectTimeoutSeconds()))
+            .build();
+            
+        this.objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            
+        {{#if features.telemetry}}
+        this.telemetryHandler = new TelemetryHandler();
+        {{/if}}
+        
+        {{#if features.caching}}
+        this.cacheHandler = new CacheHandler();
+        {{/if}}
+    }
+    
+    {{#each spec.operations}}
+    /**
+     * {{description}} (Async)
+     {{#if deprecated}}
+     * @deprecated This operation is deprecated
+     {{/if}}
+     {{#each parameters}}
+     * @param {{camel_case name}} {{description}}
+     {{/each}}
+     {{#if request_body}}
+     * @param request The request body
+     {{/if}}
+     * @return CompletableFuture containing {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+     */
+    {{#if deprecated}}@Deprecated{{/if}}
+    public CompletableFuture<{{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{/if}}{{#unless data_type}}Void{{/unless}}{{/if}}{{/each}}> {{method_name name}}Async(
+        {{#each parameters}}
+        {{type_mapping data_type}} {{camel_case name}}{{#unless @last}},{{/unless}}
+        {{/each}}
+        {{#if request_body}}
+        {{#if parameters}},{{/if}}
+        {{type_mapping request_body}} request
+        {{/if}}
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            {{#if features.caching}}
+            // Check cache first
+            String cacheKey = cacheHandler.generateCacheKey("{{name}}"{{#each parameters}}, {{camel_case name}}{{/each}});
+            {{#each responses}}{{#if @first}}{{#if data_type}}
+            Optional<{{type_mapping data_type}}> cachedResult = cacheHandler.getFromCache(cacheKey, {{type_mapping data_type}}.class);
+            if (cachedResult.isPresent()) {
+                return cachedResult.get();
+            }
+            {{/if}}{{/if}}{{/each}}
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            long startTime = System.currentTimeMillis();
+            {{/if}}
+            
+            try {
+                String url = buildUrl("{{path}}"{{#each parameters}}{{#if (eq parameter_type "Path")}}, {{camel_case name}}{{/if}}{{/each}});
+                
+                HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(config.getRequestTimeoutSeconds()));
+                
+                {{#if (eq method "GET")}}
+                requestBuilder.GET();
+                {{/if}}
+                {{#if (eq method "POST")}}
+                {{#if request_body}}
+                String jsonBody = objectMapper.writeValueAsString(request);
+                requestBuilder.POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+                requestBuilder.header("Content-Type", "application/json");
+                {{/if}}
+                {{#unless request_body}}
+                requestBuilder.POST(HttpRequest.BodyPublishers.noBody());
+                {{/unless}}
+                {{/if}}
+                {{#if (eq method "PUT")}}
+                {{#if request_body}}
+                String jsonBody = objectMapper.writeValueAsString(request);
+                requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(jsonBody));
+                requestBuilder.header("Content-Type", "application/json");
+                {{/if}}
+                {{#unless request_body}}
+                requestBuilder.PUT(HttpRequest.BodyPublishers.noBody());
+                {{/unless}}
+                {{/if}}
+                {{#if (eq method "DELETE")}}
+                requestBuilder.DELETE();
+                {{/if}}
+                
+                // Add query parameters
+                {{#each parameters}}
+                {{#if (eq parameter_type "Query")}}
+                if ({{camel_case name}} != null) {
+                    url += (url.contains("?") ? "&" : "?") + "{{name}}=" + {{camel_case name}};
+                }
+                {{/if}}
+                {{/each}}
+                
+                // Add headers
+                {{#each parameters}}
+                {{#if (eq parameter_type "Header")}}
+                if ({{camel_case name}} != null) {
+                    requestBuilder.header("{{name}}", String.valueOf({{camel_case name}}));
+                }
+                {{/if}}
+                {{/each}}
+                
+                HttpRequest httpRequest = requestBuilder.build();
+                
+                {{#if features.retry}}
+                {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{/if}}{{#unless data_type}}Void{{/unless}}{{/if}}{{/each}} result = executeWithRetry(() -> {
+                    HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                    return parseResponse(response, {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}.class{{/if}}{{#unless data_type}}Void.class{{/unless}}{{/if}}{{/each}});
+                });
+                {{/if}}
+                {{#unless features.retry}}
+                HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{/if}}{{#unless data_type}}Void{{/unless}}{{/if}}{{/each}} result = parseResponse(response, {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}.class{{/if}}{{#unless data_type}}Void.class{{/unless}}{{/if}}{{/each}});
+                {{/unless}}
+                
+                {{#if features.caching}}
+                // Cache the result
+                cacheHandler.putInCache(cacheKey, result);
+                {{/if}}
+                
+                {{#if features.telemetry}}
+                long duration = System.currentTimeMillis() - startTime;
+                telemetryHandler.recordRequest("{{method}}", "{{path}}", duration, true);
+                {{/if}}
+                
+                return result;
+                
+            } catch (Exception e) {
+                {{#if features.telemetry}}
+                long duration = System.currentTimeMillis() - startTime;
+                telemetryHandler.recordRequest("{{method}}", "{{path}}", duration, false);
+                {{/if}}
+                throw new {{class_name ../spec.name}}Exception("Failed to execute {{name}}: " + e.getMessage(), e);
+            }
+        });
+    }
+    
+    {{/each}}
+    
+    private String buildUrl(String path, Object... pathParams) {
+        String url = baseUrl + path;
+        for (int i = 0; i < pathParams.length; i++) {
+            url = url.replaceFirst("\\{[^}]+\\}", String.valueOf(pathParams[i]));
+        }
+        return url;
+    }
+    
+    private <T> T parseResponse(HttpResponse<String> response, Class<T> responseType) throws Exception {
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            if (responseType == Void.class) {
+                return null;
+            }
+            return objectMapper.readValue(response.body(), responseType);
+        } else {
+            throw new {{class_name spec.name}}Exception("HTTP " + response.statusCode() + ": " + response.body());
+        }
+    }
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+    
+    public static class {{class_name spec.name}}Exception extends RuntimeException {
+        public {{class_name spec.name}}Exception(String message) {
+            super(message);
+        }
+        
+        public {{class_name spec.name}}Exception(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+}

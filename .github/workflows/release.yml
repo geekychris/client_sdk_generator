@@ -21,11 +21,6 @@ jobs:
             os: ubuntu-latest
             archive_name: client-sdk-generator-linux-x86_64
             
-          # Linux ARM64
-          - target: aarch64-unknown-linux-gnu  
-            os: ubuntu-latest
-            archive_name: client-sdk-generator-linux-aarch64
-            
           # macOS x86_64
           - target: x86_64-apple-darwin
             os: macos-latest
@@ -35,6 +30,12 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-latest
             archive_name: client-sdk-generator-macos-aarch64
+            
+          # Linux ARM64 (using cross)
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive_name: client-sdk-generator-linux-aarch64
+            use_cross: true
 
     steps:
       - name: Checkout code
@@ -44,21 +45,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+          
+      - name: Install cross
+        if: matrix.use_cross == true
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Install cross-compilation dependencies (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Configure cross compilation (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          mkdir -p ~/.cargo
-          cat >> ~/.cargo/config.toml << EOF
-          [target.aarch64-unknown-linux-gnu]
-          linker = "aarch64-linux-gnu-gcc"
-          EOF
 
       - name: Cache cargo registry and index
         uses: actions/cache@v4
@@ -76,7 +67,12 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: Create archive directory
         run: mkdir -p archive

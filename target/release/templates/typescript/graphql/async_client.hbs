@@ -1,0 +1,83 @@
+import { {{client_class_name}}, ClientConfig{{#if authentication}}, AuthConfig{{/if}} } from './client';
+
+/**
+ * GraphQL Response type
+ */
+export interface GraphQLResponse<T = any> {
+  data?: T;
+  errors?: Array<{
+    message: string;
+    locations?: Array<{ line: number; column: number }>;
+    path?: Array<string | number>;
+  }>;
+}
+
+/**
+ * {{api_name}} TypeScript GraphQL SDK Async Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ * 
+ * Provides Promise-based async GraphQL operations
+ */
+export class {{client_class_name}}Async {
+  private client: {{client_class_name}};
+
+  constructor(config: ClientConfig) {
+    this.client = new {{client_class_name}}(config);
+  }
+
+  {{#if authentication}}
+  {{#if supports_api_key}}
+  /**
+   * Update the API key for authentication
+   */
+  setApiKey(apiKey: string): void {
+    this.client.setApiKey(apiKey);
+  }
+  {{/if}}
+
+  {{#if supports_bearer_auth}}
+  /**
+   * Update the bearer token for authentication
+   */
+  setBearerToken(token: string): void {
+    this.client.setBearerToken(token);
+  }
+  {{/if}}
+  {{/if}}
+
+  /**
+   * Execute a GraphQL query asynchronously
+   */
+  async queryAsync<T = any>(
+    query: string,
+    variables?: Record<string, any>
+  ): Promise<GraphQLResponse<T>> {
+    // In TypeScript/JavaScript, all operations are naturally async
+    return this.client.query(query, variables);
+  }
+
+  /**
+   * Execute a GraphQL mutation asynchronously
+   */
+  async mutationAsync<T = any>(
+    mutation: string,
+    variables?: Record<string, any>
+  ): Promise<GraphQLResponse<T>> {
+    // In TypeScript/JavaScript, all operations are naturally async
+    return this.client.mutation(mutation, variables);
+  }
+
+  {{#if subscription_support}}
+  /**
+   * Execute a GraphQL subscription asynchronously
+   */
+  async subscriptionAsync<T = any>(
+    subscription: string,
+    variables?: Record<string, any>
+  ): Promise<AsyncIterable<GraphQLResponse<T>>> {
+    // In TypeScript/JavaScript, all operations are naturally async
+    return this.client.subscription(subscription, variables);
+  }
+  {{/if}}
+}

@@ -1,0 +1,257 @@
+import { {{#each types}}{{name}}{{#unless @last}}, {{/unless}}{{/each}} } from './types';
+
+{{#if authentication}}
+/**
+ * Authentication configuration
+ */
+export interface AuthConfig {
+  {{#if supports_api_key}}
+  apiKey?: string;
+  {{/if}}
+  {{#if supports_bearer_auth}}
+  bearerToken?: string;
+  {{/if}}
+}
+{{/if}}
+
+/**
+ * Client configuration options
+ */
+export interface ClientConfig {
+  baseURL: string;
+  {{#if authentication}}
+  auth?: AuthConfig;
+  {{/if}}
+  {{#if retry}}
+  maxRetries?: number;
+  {{/if}}
+  timeout?: number;
+  headers?: Record<string, string>;
+}
+
+{{#if retry}}
+/**
+ * Retry configuration
+ */
+interface RetryConfig {
+  maxAttempts: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+{{/if}}
+
+/**
+ * {{api_name}} TypeScript SDK Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ */
+export class {{client_class_name}} {
+  private baseURL: string;
+  {{#if authentication}}
+  private auth?: AuthConfig;
+  {{/if}}
+  {{#if retry}}
+  private retryConfig: RetryConfig;
+  {{/if}}
+  private timeout: number;
+  private defaultHeaders: Record<string, string>;
+
+  constructor(config: ClientConfig) {
+    this.baseURL = config.baseURL.replace(/\/+$/, '');
+    {{#if authentication}}
+    this.auth = config.auth;
+    {{/if}}
+    {{#if retry}}
+    this.retryConfig = {
+      maxAttempts: config.maxRetries || 3,
+      baseDelay: 1000,
+      maxDelay: 10000,
+    };
+    {{/if}}
+    this.timeout = config.timeout || 30000;
+    this.defaultHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': '{{package_name}}/{{api_version}} (TypeScript)',
+      ...config.headers,
+    };
+  }
+
+  {{#if authentication}}
+  {{#if supports_api_key}}
+  /**
+   * Update the API key for authentication
+   */
+  setApiKey(apiKey: string): void {
+    if (!this.auth) {
+      this.auth = {};
+    }
+    this.auth.apiKey = apiKey;
+  }
+  {{/if}}
+
+  {{#if supports_bearer_auth}}
+  /**
+   * Update the bearer token for authentication
+   */
+  setBearerToken(token: string): void {
+    if (!this.auth) {
+      this.auth = {};
+    }
+    this.auth.bearerToken = token;
+  }
+  {{/if}}
+  {{/if}}
+
+  /**
+   * Make an HTTP request with retry logic and authentication
+   */
+  private async makeRequest<T>(
+    method: string,
+    path: string,
+    params?: Record<string, any>,
+    body?: any
+  ): Promise<T> {
+    const url = new URL(`${this.baseURL}${path}`);
+    
+    // Add query parameters
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    const headers = { ...this.defaultHeaders };
+
+    {{#if authentication}}
+    // Add authentication headers
+    {{#if supports_bearer_auth}}
+    if (this.auth?.bearerToken) {
+      headers.Authorization = `Bearer ${this.auth.bearerToken}`;
+    }
+    {{/if}}
+    {{#if supports_api_key}}
+    {{#if (eq auth_location "Header")}}
+    if (this.auth?.apiKey) {
+      headers['{{auth_parameter_name}}'] = this.auth.apiKey;
+    }
+    {{/if}}
+    {{/if}}
+    {{/if}}
+
+    const requestOptions: RequestInit = {
+      method,
+      headers,
+      ...(body && { body: JSON.stringify(body) }),
+    };
+
+    {{#if retry}}
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= this.retryConfig.maxAttempts; attempt++) {
+      try {
+    {{/if}}
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        
+        const response = await fetch(url.toString(), {
+          ...requestOptions,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+
+        {{#if retry}}
+        // Retry on 5xx errors and specific 4xx errors
+        if ((response.status >= 500 || response.status === 429 || response.status === 408) && attempt < this.retryConfig.maxAttempts) {
+          const delay = Math.min(
+            this.retryConfig.baseDelay * Math.pow(2, attempt - 1),
+            this.retryConfig.maxDelay
+          );
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        {{/if}}
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        // Handle empty responses
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          return undefined as T;
+        }
+
+        return await response.json();
+
+    {{#if retry}}
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (attempt === this.retryConfig.maxAttempts) {
+          throw lastError;
+        }
+        
+        const delay = Math.min(
+          this.retryConfig.baseDelay * Math.pow(2, attempt - 1),
+          this.retryConfig.maxDelay
+        );
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError!;
+    {{/if}}
+  }
+
+  {{#each operations}}
+  /**
+   * {{#if description}}{{description}}{{else}}{{name}} operation{{/if}}
+   {{#each parameters}}
+   * @param {{camel_name}} {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}
+   {{/each}}
+   */
+  async {{camel_case name}}({{#each parameters}}{{camel_name}}{{#unless required}}?{{/unless}}: {{ts_type}}{{#unless @last}}, {{/unless}}{{/each}}): Promise<{{response_type}}> {
+    {{#if has_path_params}}
+    let path = '{{path}}';
+    {{#each parameters}}
+    {{#if (eq location "Path")}}
+    path = path.replace('{{{name}}}', String({{camel_name}}));
+    {{/if}}
+    {{/each}}
+    {{else}}
+    const path = '{{path}}';
+    {{/if}}
+
+    {{#if has_query_params}}
+    const params: Record<string, any> = {};
+    {{#each parameters}}
+    {{#if (eq location "Query")}}
+    {{#if required}}
+    params['{{name}}'] = {{camel_name}};
+    {{else}}
+    if ({{camel_name}} !== undefined) {
+      params['{{name}}'] = {{camel_name}};
+    }
+    {{/if}}
+    {{/if}}
+    {{/each}}
+    {{else}}
+    const params = undefined;
+    {{/if}}
+
+    {{#if has_body_params}}
+    const body = /* TODO: Extract body from parameters */;
+    {{else}}
+    const body = undefined;
+    {{/if}}
+
+    return this.makeRequest<{{response_type}}>('{{method_upper}}', path, params, body);
+  }
+
+  {{/each}}
+}

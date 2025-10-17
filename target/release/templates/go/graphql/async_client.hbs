@@ -1,0 +1,63 @@
+package {{package_name}}
+
+import (
+	"context"
+)
+
+// {{class_name}}AsyncClient provides async GraphQL operations
+type {{class_name}}AsyncClient struct {
+	client *{{class_name}}
+}
+
+// New{{class_name}}Async creates a new async GraphQL client
+func New{{class_name}}Async(config ClientConfig) *{{class_name}}AsyncClient {
+	return &{{class_name}}AsyncClient{
+		client: New{{class_name}}(config),
+	}
+}
+
+// QueryResult holds the result of a GraphQL query
+type QueryResult struct {
+	Data  interface{}
+	Error error
+}
+
+// QueryAsync executes a GraphQL query asynchronously
+func (c *{{class_name}}AsyncClient) QueryAsync(ctx context.Context, query string, variables map[string]interface{}) <-chan QueryResult {
+	resultChan := make(chan QueryResult, 1)
+	
+	go func() {
+		defer close(resultChan)
+		
+		result, err := c.client.Query(ctx, query, variables)
+		resultChan <- QueryResult{
+			Data:  result,
+			Error: err,
+		}
+	}()
+	
+	return resultChan
+}
+
+// MutationResult holds the result of a GraphQL mutation
+type MutationResult struct {
+	Data  interface{}
+	Error error
+}
+
+// MutationAsync executes a GraphQL mutation asynchronously
+func (c *{{class_name}}AsyncClient) MutationAsync(ctx context.Context, mutation string, variables map[string]interface{}) <-chan MutationResult {
+	resultChan := make(chan MutationResult, 1)
+	
+	go func() {
+		defer close(resultChan)
+		
+		result, err := c.client.Mutation(ctx, mutation, variables)
+		resultChan <- MutationResult{
+			Data:  result,
+			Error: err,
+		}
+	}()
+	
+	return resultChan
+}

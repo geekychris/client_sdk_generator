@@ -1,0 +1,101 @@
+use reqwest;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+{{#if async_support}}use tokio;{{/if}}
+
+use crate::models::*;
+use crate::error::ApiError;
+
+/// {{api_name}} Rust SDK Client
+/// 
+/// {{#if description}}{{description}}{{/if}}
+pub struct {{class_name}} {
+    client: reqwest::Client,
+    base_url: String,
+    {{#if authentication}}
+    api_key: Option<String>,
+    {{/if}}
+}
+
+impl {{class_name}} {
+    /// Create a new instance of {{class_name}}
+    pub fn new(base_url: String{{#if authentication}}, api_key: Option<String>{{/if}}) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            base_url: base_url.trim_end_matches('/').to_string(),
+            {{#if authentication}}
+            api_key,
+            {{/if}}
+        }
+    }
+    
+    {{#each operations}}
+    /// {{#if description}}{{description}}{{else}}{{name}} operation{{/if}}
+    {{#if ../async_support}}pub async {{/if}}{{#unless ../async_support}}pub {{/unless}}fn {{snake_case name}}(
+        &self{{#each parameters}},
+        {{snake_case name}}: {{rust_type type}}{{/each}}
+    ) -> Result<{{rust_type response_type}}, ApiError> {
+        let url = format!("{}{{path}}", self.base_url{{#each parameters}}{{#if (eq location "path")}}, {{snake_case name}}{{/if}}{{/each}});
+        
+        {{#if (has_query_params parameters)}}
+        let mut params = vec![];
+        {{#each parameters}}
+        {{#if (eq location "query")}}
+        {{#if required}}
+        params.push(("{{name}}", {{snake_case name}}.to_string()));
+        {{else}}
+        if let Some(value) = {{snake_case name}} {
+            params.push(("{{name}}", value.to_string()));
+        }
+        {{/if}}
+        {{/if}}
+        {{/each}}
+        {{/if}}
+        
+        let mut request = self.client.{{lowercase method}}(&url);
+        
+        {{#if (has_query_params parameters)}}
+        request = request.query(&params);
+        {{/if}}
+        
+        {{#if authentication}}
+        if let Some(ref api_key) = self.api_key {
+            request = request.bearer_auth(api_key);
+        }
+        {{/if}}
+        
+        {{#if async_support}}
+        let response = request.send().await?;
+        let status = response.status();
+        
+        if status.is_success() {
+            {{#if (eq response_type "void")}}
+            Ok(())
+            {{else}}
+            let body = response.text().await?;
+            let result: {{rust_type response_type}} = serde_json::from_str(&body)?;
+            Ok(result)
+            {{/if}}
+        } else {
+            Err(ApiError::HttpError(status.as_u16(), response.text().await.unwrap_or_default()))
+        }
+        {{else}}
+        let response = request.send()?;
+        let status = response.status();
+        
+        if status.is_success() {
+            {{#if (eq response_type "void")}}
+            Ok(())
+            {{else}}
+            let body = response.text()?;
+            let result: {{rust_type response_type}} = serde_json::from_str(&body)?;
+            Ok(result)
+            {{/if}}
+        } else {
+            Err(ApiError::HttpError(status.as_u16(), response.text().unwrap_or_default()))
+        }
+        {{/if}}
+    }
+    
+    {{/each}}
+}

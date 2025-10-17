@@ -1,0 +1,105 @@
+package {{package_name}};
+
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+
+/**
+ * {{api_name}} Java SDK Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ */
+public class {{class_name}} {
+    private final HttpClient httpClient;
+    private final String baseUrl;
+    private final ObjectMapper objectMapper;
+    {{#if authentication}}
+    private String apiKey;
+    {{/if}}
+    
+    public {{class_name}}(String baseUrl{{#if authentication}}, String apiKey{{/if}}) {
+        this.httpClient = HttpClient.newHttpClient();
+        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.objectMapper = new ObjectMapper();
+        {{#if authentication}}
+        this.apiKey = apiKey;
+        {{/if}}
+    }
+    
+    {{#each operations}}
+    /**
+     * {{#if description}}{{description}}{{else}}{{name}} operation{{/if}}
+     {{#each parameters}}
+     * @param {{camelCase name}} {{#if description}}{{description}}{{else}}{{name}} parameter{{/if}}
+     {{/each}}
+     * @return {{java_type response_type}}
+     */
+    public {{java_type response_type}} {{camelCase name}}({{#each parameters}}{{java_type type}} {{camelCase name}}{{#unless @last}}, {{/unless}}{{/each}}) throws Exception {
+        String url = baseUrl + "{{path}}";
+        {{#each parameters}}
+        {{#if (eq location "path")}}
+        url = url.replace("{" + "{{name}}" + "}", String.valueOf({{camelCase name}}));
+        {{/if}}
+        {{/each}}
+        
+        {{#if (has_query_params parameters)}}
+        Map<String, String> queryParams = new HashMap<>();
+        {{#each parameters}}
+        {{#if (eq location "query")}}
+        {{#if required}}
+        queryParams.put("{{name}}", String.valueOf({{camelCase name}}));
+        {{else}}
+        if ({{camelCase name}} != null) {
+            queryParams.put("{{name}}", String.valueOf({{camelCase name}}));
+        }
+        {{/if}}
+        {{/if}}
+        {{/each}}
+        
+        if (!queryParams.isEmpty()) {
+            StringBuilder queryString = new StringBuilder("?");
+            for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+                queryString.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8))
+                          .append("=")
+                          .append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+                          .append("&");
+            }
+            url += queryString.substring(0, queryString.length() - 1);
+        }
+        {{/if}}
+        
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .{{uppercase method}}();
+        
+        {{#if authentication}}
+        if (apiKey != null) {
+            requestBuilder.header("Authorization", "Bearer " + apiKey);
+        }
+        {{/if}}
+        
+        HttpRequest request = requestBuilder.build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            {{#if (eq response_type "void")}}
+            return;
+            {{else}}
+            return objectMapper.readValue(response.body(), new TypeReference<{{java_type response_type}}>(){});
+            {{/if}}
+        } else {
+            throw new RuntimeException("HTTP " + response.statusCode() + ": " + response.body());
+        }
+    }
+    
+    {{/each}}
+}

@@ -1,0 +1,346 @@
+"""
+{{spec.description}}
+
+Generated SDK for {{spec.name}} v{{spec.version}}
+"""
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+import httpx
+import asyncio
+from typing import Optional, Dict, Any, List, Union
+from dataclasses import dataclass, asdict
+import json
+from urllib.parse import urljoin
+{{#if features.caching}}
+from .cache_handler import CacheHandler
+{{/if}}
+{{#if features.telemetry}}
+from .telemetry_handler import TelemetryHandler
+{{/if}}
+
+from .config import ClientConfig
+from .exceptions import {{class_name spec.name}}Exception
+{{#each spec.types}}
+from .models.{{snake_case name}} import {{class_name name}}
+{{/each}}
+
+
+class {{class_name spec.name}}Client:
+    """{{spec.description}}"""
+    
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.base_url = config.base_url
+        self._client = httpx.Client(
+            timeout=config.timeout,
+            headers=config.default_headers or {}
+        )
+        
+        {{#if features.telemetry}}
+        self.telemetry = TelemetryHandler()
+        {{/if}}
+        
+        {{#if features.caching}}
+        self.cache = CacheHandler()
+        {{/if}}
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._client.close()
+    
+    {{#each spec.operations}}
+    def {{snake_case name}}(self{{#each parameters}}, {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Optional[{{type_mapping data_type}}] = None{{/if}}{{/each}}{{#if request_body}}, request: {{type_mapping request_body}}{{/if}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}None{{/if}}{{/if}}{{/each}}:
+        """{{description}}
+        {{#if deprecated}}
+        
+        .. deprecated:: This operation is deprecated
+        {{/if}}
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        {{#if request_body}}
+            request: The request body
+        {{/if}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache.generate_cache_key("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+        {{#each responses}}{{#if @first}}{{#if data_type}}
+        cached_result = self.cache.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}{{/if}}{{/each}}
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            url = self._build_url("{{path}}"{{#each parameters}}{{#if (eq parameter_type "Path")}}, {{snake_case name}}{{/if}}{{/each}})
+            
+            params = {}
+            headers = {}
+            
+            # Add query parameters
+            {{#each parameters}}
+            {{#if (eq parameter_type "Query")}}
+            if {{snake_case name}} is not None:
+                params["{{name}}"] = {{snake_case name}}
+            {{/if}}
+            {{/each}}
+            
+            # Add headers
+            {{#each parameters}}
+            {{#if (eq parameter_type "Header")}}
+            if {{snake_case name}} is not None:
+                headers["{{name}}"] = str({{snake_case name}})
+            {{/if}}
+            {{/each}}
+            
+            # Prepare request data
+            json_data = None
+            {{#if request_body}}
+            if request is not None:
+                json_data = asdict(request) if hasattr(request, '__dataclass_fields__') else request
+            {{/if}}
+            
+            {{#if features.retry}}
+            result = self._execute_with_retry(
+                lambda: self._client.request(
+                    "{{upper_case method}}",
+                    url,
+                    params=params,
+                    headers=headers,
+                    json=json_data
+                )
+            )
+            {{else}}
+            response = self._client.request(
+                "{{upper_case method}}",
+                url,
+                params=params,
+                headers=headers,
+                json=json_data
+            )
+            result = self._parse_response(response{{#each responses}}{{#if @first}}{{#if data_type}}, None  # TODO: Fix type parsing{{/if}}{{/if}}{{/each}})
+            {{/if}}
+            
+            {{#if features.caching}}
+            # Cache the result
+            self.cache.put_in_cache(cache_key, result)
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("{{method}}", "{{path}}", duration, True)
+            {{/if}}
+            
+            return result
+            
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("{{method}}", "{{path}}", duration, False)
+            {{/if}}
+            raise {{class_name ../spec.name}}Exception(f"Failed to execute {{name}}: {str(e)}") from e
+    
+    {{/each}}
+    
+    def _build_url(self, path: str, *path_params) -> str:
+        """Build the full URL for a request."""
+        url = path
+        for param in path_params:
+            url = url.replace("{" + str(param) + "}", str(param), 1)
+        return urljoin(self.base_url, url.lstrip('/'))
+    
+    def _parse_response(self, response: httpx.Response, response_type=None):
+        """Parse HTTP response."""
+        response.raise_for_status()
+        
+        if response_type is None:
+            return None
+            
+        if response.status_code == 204:  # No Content
+            return None
+            
+        try:
+            data = response.json()
+            if response_type and hasattr(response_type, '__dataclass_fields__'):
+                return response_type(**data)
+            return data
+        except Exception as e:
+            raise {{class_name spec.name}}Exception(f"Failed to parse response: {str(e)}") from e
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+
+
+{{#if features.async}}
+class {{class_name spec.name}}AsyncClient:
+    """Async version of {{class_name spec.name}}Client"""
+    
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.base_url = config.base_url
+        self._client = None
+        
+        {{#if features.telemetry}}
+        self.telemetry = TelemetryHandler()
+        {{/if}}
+        
+        {{#if features.caching}}
+        self.cache = CacheHandler()
+        {{/if}}
+    
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(
+            timeout=self.config.timeout,
+            headers=self.config.default_headers or {}
+        )
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._client:
+            await self._client.aclose()
+    
+    {{#each spec.operations}}
+    async def {{snake_case name}}(self{{#each parameters}}, {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Optional[{{type_mapping data_type}}] = None{{/if}}{{/each}}{{#if request_body}}, request: {{type_mapping request_body}}{{/if}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}None{{/if}}{{/if}}{{/each}}:
+        """{{description}} (async version)
+        {{#if deprecated}}
+        
+        .. deprecated:: This operation is deprecated
+        {{/if}}
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        {{#if request_body}}
+            request: The request body
+        {{/if}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache.generate_cache_key("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+        {{#each responses}}{{#if @first}}{{#if data_type}}
+        cached_result = self.cache.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}{{/if}}{{/each}}
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            url = self._build_url("{{path}}"{{#each parameters}}{{#if (eq parameter_type "Path")}}, {{snake_case name}}{{/if}}{{/each}})
+            
+            params = {}
+            headers = {}
+            
+            # Add query parameters
+            {{#each parameters}}
+            {{#if (eq parameter_type "Query")}}
+            if {{snake_case name}} is not None:
+                params["{{name}}"] = {{snake_case name}}
+            {{/if}}
+            {{/each}}
+            
+            # Add headers
+            {{#each parameters}}
+            {{#if (eq parameter_type "Header")}}
+            if {{snake_case name}} is not None:
+                headers["{{name}}"] = str({{snake_case name}})
+            {{/if}}
+            {{/each}}
+            
+            # Prepare request data
+            json_data = None
+            {{#if request_body}}
+            if request is not None:
+                json_data = asdict(request) if hasattr(request, '__dataclass_fields__') else request
+            {{/if}}
+            
+            {{#if features.retry}}
+            result = await self._execute_with_retry(
+                lambda: self._client.request(
+                    "{{upper_case method}}",
+                    url,
+                    params=params,
+                    headers=headers,
+                    json=json_data
+                )
+            )
+            {{else}}
+            response = await self._client.request(
+                "{{upper_case method}}",
+                url,
+                params=params,
+                headers=headers,
+                json=json_data
+            )
+            result = self._parse_response(response{{#each responses}}{{#if @first}}{{#if data_type}}, None  # TODO: Fix type parsing{{/if}}{{/if}}{{/each}})
+            {{/if}}
+            
+            {{#if features.caching}}
+            # Cache the result
+            self.cache.put_in_cache(cache_key, result)
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("{{method}}", "{{path}}", duration, True)
+            {{/if}}
+            
+            return result
+            
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("{{method}}", "{{path}}", duration, False)
+            {{/if}}
+            raise {{class_name ../spec.name}}Exception(f"Failed to execute {{name}}: {str(e)}") from e
+    
+    {{/each}}
+    
+    def _build_url(self, path: str, *path_params) -> str:
+        """Build the full URL for a request."""
+        url = path
+        for param in path_params:
+            url = url.replace("{" + str(param) + "}", str(param), 1)
+        return urljoin(self.base_url, url.lstrip('/'))
+    
+    def _parse_response(self, response: httpx.Response, response_type=None):
+        """Parse HTTP response."""
+        response.raise_for_status()
+        
+        if response_type is None:
+            return None
+            
+        if response.status_code == 204:  # No Content
+            return None
+            
+        try:
+            data = response.json()
+            if response_type and hasattr(response_type, '__dataclass_fields__'):
+                return response_type(**data)
+            return data
+        except Exception as e:
+            raise {{class_name spec.name}}Exception(f"Failed to parse response: {str(e)}") from e
+{{/if}}

@@ -1,0 +1,138 @@
+//! {{spec.description}}
+//! 
+//! Generated gRPC SDK for {{spec.name}} v{{spec.version}}
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+use tonic::transport::{Channel, ClientTlsConfig};
+use tonic::{Request, Response, Status};
+use std::time::{Duration, Instant};
+{{#if features.caching}}
+use crate::cache::CacheHandler;
+{{/if}}
+{{#if features.telemetry}}
+use crate::telemetry::TelemetryHandler;
+{{/if}}
+
+use crate::config::ClientConfig;
+use crate::error::{{class_name spec.name}}Error;
+use crate::error::Result;
+{{#each spec.types}}
+use crate::models::{{snake_case name}}::{{class_name name}};
+{{/each}}
+
+/// {{spec.description}}
+pub struct {{class_name spec.name}}Client {
+    channel: Channel,
+    config: ClientConfig,
+    {{#if features.telemetry}}
+    telemetry: TelemetryHandler,
+    {{/if}}
+    {{#if features.caching}}
+    cache: CacheHandler,
+    {{/if}}
+}
+
+impl {{class_name spec.name}}Client {
+    /// Create a new gRPC client instance
+    pub async fn new(config: ClientConfig) -> Result<Self> {
+        let channel = if config.use_tls {
+            let tls_config = ClientTlsConfig::new()
+                .domain_name(&config.tls_domain.as_ref().unwrap_or(&"localhost".to_string()));
+            
+            Channel::from_shared(config.base_url.clone())
+                .map_err(|e| {{class_name spec.name}}Error::Configuration(format!("Invalid server URL: {}", e)))?
+                .tls_config(tls_config)
+                .map_err(|e| {{class_name spec.name}}Error::Configuration(format!("TLS configuration error: {}", e)))?
+                .connect()
+                .await
+                .map_err(|e| {{class_name spec.name}}Error::Connection(format!("Failed to connect: {}", e)))?
+        } else {
+            Channel::from_shared(config.base_url.clone())
+                .map_err(|e| {{class_name spec.name}}Error::Configuration(format!("Invalid server URL: {}", e)))?
+                .connect()
+                .await
+                .map_err(|e| {{class_name spec.name}}Error::Connection(format!("Failed to connect: {}", e)))?
+        };
+        
+        Ok(Self {
+            channel,
+            config,
+            {{#if features.telemetry}}
+            telemetry: TelemetryHandler::new(),
+            {{/if}}
+            {{#if features.caching}}
+            cache: CacheHandler::new(),
+            {{/if}}
+        })
+    }
+    
+    {{#each services}}
+    {{#each methods}}
+    /// {{#if description}}{{description}}{{else}}{{name}} gRPC method{{/if}}
+    {{#if deprecated}}
+    #[deprecated]
+    {{/if}}
+    pub async fn {{snake_case name}}(
+        &mut self,
+        request: impl tonic::IntoRequest<{{request_type}}>
+    ) -> Result<Response<{{response_type}}>> {
+        {{#if ../features.caching}}
+        // Note: gRPC caching would need custom implementation based on request content
+        {{/if}}
+        
+        {{#if ../features.telemetry}}
+        let start_time = Instant::now();
+        {{/if}}
+        
+        let result = async {
+            // Note: In a real implementation, you'd use the generated gRPC client
+            // let mut client = YourServiceClient::new(self.channel.clone());
+            // client.{{snake_case name}}(request).await
+            
+            // Placeholder implementation
+            Err({{class_name ../../spec.name}}Error::NotImplemented("gRPC method not implemented".to_string()))
+        }.await;
+        
+        {{#if ../features.telemetry}}
+        let duration = start_time.elapsed();
+        self.telemetry.record_request(
+            "gRPC", 
+            "{{name}}", 
+            duration.as_secs_f64(), 
+            result.is_ok()
+        );
+        {{/if}}
+        
+        result.map_err(|e| {{class_name ../../../spec.name}}Error::Grpc(format!("gRPC call failed: {}", e)))
+    }
+    
+    {{/each}}
+    {{/each}}
+    
+    /// Get a reference to the underlying channel
+    pub fn channel(&self) -> &Channel {
+        &self.channel
+    }
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+}
+
+impl Clone for {{class_name spec.name}}Client {
+    fn clone(&self) -> Self {
+        Self {
+            channel: self.channel.clone(),
+            config: self.config.clone(),
+            {{#if features.telemetry}}
+            telemetry: self.telemetry.clone(),
+            {{/if}}
+            {{#if features.caching}}
+            cache: self.cache.clone(),
+            {{/if}}
+        }
+    }
+}

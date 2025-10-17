@@ -1,0 +1,677 @@
+# {{api_name}} gRPC API Documentation
+
+{{#if description}}{{description}}{{/if}}
+
+TypeScript gRPC client SDK for {{api_name}}.
+
+**Version:** {{api_version}}
+
+## Installation
+
+```bash
+npm install {{package_name}}
+# or
+yarn add {{package_name}}
+```
+
+## Quick Start
+
+### Node.js
+
+```typescript
+import { GrpcClient } from '{{package_name}}';
+
+const client = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  {{#if authentication}}
+  auth: {
+    {{#if supports_api_key}}
+    apiKey: 'your-api-key',
+    {{/if}}
+    {{#if supports_bearer_auth}}
+    bearerToken: 'your-token',
+    {{/if}}
+  },
+  {{/if}}
+});
+
+// Example unary call
+const response = await client.exampleMethod({
+  message: 'Hello, gRPC!',
+});
+
+console.log(response);
+
+// Close the client when done
+await client.close();
+```
+
+### Browser (gRPC-Web)
+
+```typescript
+import { GrpcClient } from '{{package_name}}/web';
+
+const client = new GrpcClient({
+  host: 'https://api.example.com',
+  {{#if authentication}}
+  auth: {
+    {{#if supports_api_key}}
+    apiKey: 'your-api-key',
+    {{/if}}
+    {{#if supports_bearer_auth}}
+    bearerToken: 'your-token',
+    {{/if}}
+  },
+  {{/if}}
+});
+
+const response = await client.exampleMethod({
+  message: 'Hello, gRPC-Web!',
+});
+
+console.log(response);
+```
+
+## Authentication
+
+{{#if authentication}}
+This API uses {{authentication.auth_type}} authentication.
+
+{{#if (eq authentication.auth_type "ApiKey")}}
+### API Key Authentication
+
+```typescript
+const client = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  auth: {
+    apiKey: 'your-api-key-here',
+  },
+});
+```
+
+The API key will be sent in gRPC metadata.
+{{/if}}
+
+{{#if (eq authentication.auth_type "Http")}}
+### Bearer Token Authentication
+
+```typescript
+const client = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  auth: {
+    bearerToken: 'your-bearer-token-here',
+  },
+});
+```
+{{/if}}
+
+{{else}}
+No authentication is required for this API.
+{{/if}}
+
+## Services and Methods
+
+{{#each services}}
+### {{pascal_case name}} Service
+
+{{#if description}}{{description}}{{else}}{{pascal_case name}} gRPC service{{/if}}
+
+{{#each methods}}
+#### {{pascal_case name}}
+
+{{#if description}}{{description}}{{else}}{{pascal_case name}} method{{/if}}
+
+**Request Type:** `{{pascal_case request_type}}`  
+**Response Type:** `{{pascal_case response_type}}`  
+{{#if streaming}}
+**Streaming:** {{streaming_type}}
+{{/if}}
+
+**Method Signature:**
+```typescript
+{{#if client_streaming}}
+// Client streaming
+{{camel_case name}}(): ClientWritableStream<{{pascal_case request_type}}, {{pascal_case response_type}}>
+{{else if server_streaming}}
+// Server streaming  
+{{camel_case name}}(request: {{pascal_case request_type}}, options?: CallOptions): AsyncIterable<{{pascal_case response_type}}>
+{{else if bidirectional_streaming}}
+// Bidirectional streaming
+{{camel_case name}}(): BidirectionalStream<{{pascal_case request_type}}, {{pascal_case response_type}}>
+{{else}}
+// Unary call
+{{camel_case name}}(request: {{pascal_case request_type}}, options?: CallOptions): Promise<{{pascal_case response_type}}>
+{{/if}}
+```
+
+**Example Usage:**
+
+{{#if client_streaming}}
+```typescript
+// Client streaming example
+const stream = client.{{camel_case name}}();
+
+// Send multiple requests
+for (let i = 0; i < 10; i++) {
+  await stream.write({
+    data: `message-${i}`,
+  });
+}
+
+// End stream and get response
+const response = await stream.end();
+console.log('Final response:', response);
+```
+{{else if server_streaming}}
+```typescript
+// Server streaming example
+const request: {{pascal_case request_type}} = {
+  query: 'example query',
+};
+
+const stream = client.{{camel_case name}}(request);
+
+// Using async iteration
+for await (const response of stream) {
+  console.log('Received:', response);
+}
+
+// Or using callbacks
+stream.on('data', (response: {{pascal_case response_type}}) => {
+  console.log('Received:', response);
+});
+
+stream.on('error', (error) => {
+  console.error('Stream error:', error);
+});
+
+stream.on('end', () => {
+  console.log('Stream ended');
+});
+```
+{{else if bidirectional_streaming}}
+```typescript
+// Bidirectional streaming example
+const stream = client.{{camel_case name}}();
+
+// Handle incoming responses
+stream.on('data', (response: {{pascal_case response_type}}) => {
+  console.log('Received:', response);
+});
+
+stream.on('error', (error) => {
+  console.error('Stream error:', error);
+});
+
+// Send requests
+for (let i = 0; i < 5; i++) {
+  await stream.write({
+    data: `message-${i}`,
+  });
+}
+
+// End the stream
+await stream.end();
+```
+{{else}}
+```typescript
+// Unary call example
+const request: {{pascal_case request_type}} = {
+  {{#each request_fields}}
+  {{#if required}}{{camel_case name}}: {{#if (eq field_type "string")}}'example_value'{{else if (eq field_type "number")}}123{{else if (eq field_type "boolean")}}true{{else}}undefined{{/if}},{{/if}}
+  {{/each}}
+};
+
+try {
+  const response = await client.{{camel_case name}}(request);
+  console.log('Response:', response);
+} catch (error) {
+  console.error('Error:', error);
+}
+
+// With options
+const response = await client.{{camel_case name}}(request, {
+  timeout: 10000, // 10 seconds
+  metadata: {
+    'custom-header': 'value',
+  },
+});
+```
+{{/if}}
+
+---
+
+{{/each}}
+{{/each}}
+
+## Message Types
+
+{{#each messages}}
+### {{pascal_case name}}
+
+{{#if description}}{{description}}{{else}}{{pascal_case name}} message type{{/if}}
+
+**TypeScript Interface:**
+```typescript
+interface {{pascal_case name}} {
+  {{#each fields}}
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{ts_type field_type}};{{#if description}} // {{description}}{{/if}}
+  {{/each}}
+}
+```
+
+{{#if fields}}
+**Fields:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+{{#each fields}}
+| `{{camel_case name}}` | {{ts_type field_type}} | {{#if required}}✅{{else}}❌{{/if}} | {{#if description}}{{description}}{{else}}{{camel_case name}} field{{/if}} |
+{{/each}}
+{{/if}}
+
+**Creating {{pascal_case name}}:**
+
+```typescript
+const message: {{pascal_case name}} = {
+  {{#each fields}}
+  {{#if required}}
+  {{camel_case name}}: {{#if (eq field_type "string")}}'example_value'{{else if (eq field_type "number")}}0{{else if (eq field_type "boolean")}}false{{else}}undefined{{/if}},
+  {{/if}}
+  {{/each}}
+};
+```
+
+---
+
+{{/each}}
+
+## Error Handling
+
+The gRPC client provides comprehensive error handling:
+
+```typescript
+import { GrpcClient, GrpcError } from '{{package_name}}';
+import { Status } from '@grpc/grpc-js/build/src/constants';
+
+try {
+  const response = await client.someMethod(request);
+  console.log(response);
+} catch (error) {
+  if (error instanceof GrpcError) {
+    console.error('gRPC Error:', error.message);
+    console.error('Status Code:', error.code);
+    
+    // Handle specific error codes
+    switch (error.code) {
+      case Status.NOT_FOUND:
+        console.error('Resource not found');
+        break;
+      case Status.PERMISSION_DENIED:
+        console.error('Permission denied');
+        break;
+      case Status.UNAUTHENTICATED:
+        console.error('Authentication failed');
+        break;
+      case Status.DEADLINE_EXCEEDED:
+        console.error('Request timed out');
+        break;
+      case Status.UNAVAILABLE:
+        console.error('Service unavailable');
+        break;
+      case Status.RESOURCE_EXHAUSTED:
+        console.error('Rate limit exceeded');
+        break;
+      default:
+        console.error(`gRPC error with code: ${error.code}`);
+    }
+    
+    // Access error details
+    if (error.details) {
+      console.error('Error details:', error.details);
+    }
+    
+    // Access metadata
+    if (error.metadata) {
+      console.error('Error metadata:', error.metadata.getMap());
+    }
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+### Common gRPC Status Codes
+
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | `OK` | Success |
+| 1 | `CANCELLED` | Operation was cancelled |
+| 2 | `UNKNOWN` | Unknown error |
+| 3 | `INVALID_ARGUMENT` | Invalid arguments provided |
+| 4 | `DEADLINE_EXCEEDED` | Request timeout |
+| 5 | `NOT_FOUND` | Resource not found |
+| 6 | `ALREADY_EXISTS` | Resource already exists |
+| 7 | `PERMISSION_DENIED` | Insufficient permissions |
+| 8 | `RESOURCE_EXHAUSTED` | Resource exhausted (rate limiting) |
+| 9 | `FAILED_PRECONDITION` | Precondition failed |
+| 10 | `ABORTED` | Operation aborted |
+| 11 | `OUT_OF_RANGE` | Value out of range |
+| 12 | `UNIMPLEMENTED` | Method not implemented |
+| 13 | `INTERNAL` | Internal server error |
+| 14 | `UNAVAILABLE` | Service unavailable |
+| 15 | `DATA_LOSS` | Data loss or corruption |
+| 16 | `UNAUTHENTICATED` | Authentication failed |
+
+### Retry Logic
+
+Implement custom retry logic for failed requests:
+
+```typescript
+async function retryableCall<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (error instanceof GrpcError) {
+        // Check if error is retryable
+        const retryableCodes = [
+          Status.UNAVAILABLE,
+          Status.DEADLINE_EXCEEDED,
+          Status.RESOURCE_EXHAUSTED,
+        ];
+
+        if (!retryableCodes.includes(error.code) || attempt === maxRetries) {
+          throw error;
+        }
+
+        // Exponential backoff
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
+// Usage
+const response = await retryableCall(() =>
+  client.someMethod(request)
+);
+```
+
+## Advanced Usage
+
+### Custom Metadata
+
+Add custom metadata to requests:
+
+```typescript
+const response = await client.someMethod(request, {
+  metadata: {
+    'custom-header': 'custom-value',
+    'user-id': '123',
+    'request-id': 'unique-request-id',
+  },
+});
+```
+
+### Request Timeouts
+
+Set custom timeouts for requests:
+
+```typescript
+// Individual request timeout
+const response = await client.someMethod(request, {
+  timeout: 30000, // 30 seconds
+});
+
+// Global client timeout
+const client = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  timeout: 60000, // 60 seconds for all requests
+});
+```
+
+### Request Cancellation
+
+Cancel ongoing requests using AbortController:
+
+```typescript
+const controller = new AbortController();
+
+// Start the request
+const responsePromise = client.someMethod(request, {
+  signal: controller.signal,
+});
+
+// Cancel after 5 seconds
+setTimeout(() => {
+  controller.abort();
+}, 5000);
+
+try {
+  const response = await responsePromise;
+  console.log(response);
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request was cancelled');
+  } else {
+    console.error('Request failed:', error);
+  }
+}
+```
+
+### Streaming Best Practices
+
+#### Server Streaming
+
+```typescript
+async function handleServerStream() {
+  const stream = client.getStreamingData(request);
+  
+  try {
+    for await (const response of stream) {
+      console.log('Received:', response);
+      
+      // Process the response
+      await processResponse(response);
+    }
+  } catch (error) {
+    console.error('Stream error:', error);
+  }
+}
+```
+
+#### Client Streaming
+
+```typescript
+async function handleClientStream() {
+  const stream = client.sendStreamingData();
+  
+  try {
+    // Send data
+    for (let i = 0; i < 100; i++) {
+      await stream.write({
+        data: `chunk-${i}`,
+      });
+    }
+    
+    // End stream and get final response
+    const finalResponse = await stream.end();
+    console.log('Upload completed:', finalResponse);
+  } catch (error) {
+    console.error('Upload failed:', error);
+  }
+}
+```
+
+### Connection Management
+
+#### Health Checks
+
+```typescript
+// Check connection health
+async function checkHealth() {
+  try {
+    const isHealthy = await client.healthCheck();
+    if (isHealthy) {
+      console.log('Service is healthy');
+    } else {
+      console.log('Service is unhealthy');
+    }
+  } catch (error) {
+    console.error('Health check failed:', error);
+  }
+}
+```
+
+#### Connection Pooling
+
+```typescript
+const client = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  // Connection pool settings
+  keepAlive: true,
+  keepAliveTime: 30000, // 30 seconds
+  keepAliveTimeout: 10000, // 10 seconds
+  maxReceiveMessageSize: 1024 * 1024 * 4, // 4MB
+  maxSendMessageSize: 1024 * 1024 * 4, // 4MB
+});
+```
+
+### Environment-Specific Configuration
+
+```typescript
+// Development
+const devClient = new GrpcClient({
+  host: 'localhost',
+  port: 50051,
+  useTLS: false, // No TLS for local development
+});
+
+// Staging
+const stagingClient = new GrpcClient({
+  host: 'staging-api.example.com',
+  port: 443,
+  useTLS: true,
+  auth: {
+    apiKey: process.env.STAGING_API_KEY,
+  },
+});
+
+// Production
+const prodClient = new GrpcClient({
+  host: 'api.example.com',
+  port: 443,
+  useTLS: true,
+  auth: {
+    apiKey: process.env.PRODUCTION_API_KEY,
+  },
+  // Production-specific settings
+  timeout: 30000,
+  maxRetries: 3,
+});
+```
+
+## Configuration Options
+
+### Client Configuration
+
+```typescript
+interface GrpcClientConfig {
+  /** Server hostname */
+  host: string;
+  
+  /** Server port */
+  port?: number;
+  
+  /** Use TLS/SSL */
+  useTLS?: boolean;
+  
+  /** Authentication configuration */
+  auth?: {
+    apiKey?: string;
+    bearerToken?: string;
+  };
+  
+  /** Default request timeout in milliseconds */
+  timeout?: number;
+  
+  /** Maximum number of retries */
+  maxRetries?: number;
+  
+  /** Enable keep-alive */
+  keepAlive?: boolean;
+  
+  /** Keep-alive time in milliseconds */
+  keepAliveTime?: number;
+  
+  /** Keep-alive timeout in milliseconds */
+  keepAliveTimeout?: number;
+  
+  /** Maximum message size for receiving */
+  maxReceiveMessageSize?: number;
+  
+  /** Maximum message size for sending */
+  maxSendMessageSize?: number;
+  
+  /** Custom TLS credentials */
+  credentials?: any;
+  
+  /** Enable gRPC-Web mode for browsers */
+  web?: boolean;
+}
+```
+
+### Environment Variables
+
+Configure the client using environment variables:
+
+```bash
+# .env file
+GRPC_HOST=api.example.com
+GRPC_PORT=443
+GRPC_USE_TLS=true
+API_KEY=your-api-key
+GRPC_TIMEOUT=30000
+GRPC_MAX_RETRIES=3
+```
+
+```typescript
+const client = new GrpcClient({
+  host: process.env.GRPC_HOST!,
+  port: parseInt(process.env.GRPC_PORT || '443'),
+  useTLS: process.env.GRPC_USE_TLS === 'true',
+  auth: {
+    apiKey: process.env.API_KEY,
+  },
+  timeout: parseInt(process.env.GRPC_TIMEOUT || '30000'),
+  maxRetries: parseInt(process.env.GRPC_MAX_RETRIES || '3'),
+});
+```
+
+---
+
+*This documentation was generated automatically from the Protocol Buffer definitions.*

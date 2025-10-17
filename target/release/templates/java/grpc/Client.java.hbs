@@ -1,0 +1,117 @@
+package {{package_name}};
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
+import io.grpc.stub.MetadataUtils;
+import io.grpc.StatusRuntimeException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * {{api_name}} Java gRPC SDK Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ */
+public class {{class_name}} {
+    private final ManagedChannel channel;
+    private final ExecutorService executor;
+    {{#if authentication}}
+    private final String apiKey;
+    private final Metadata headers;
+    {{/if}}
+    
+    // Note: In a real implementation, you would have generated gRPC stubs from .proto files
+    // This is a generic template showing the proper structure
+    
+    public {{class_name}}(String host, int port{{#if authentication}}, String apiKey{{/if}}) {
+        this.channel = ManagedChannelBuilder.forAddress(host, port)
+            .usePlaintext() // Use .useTransportSecurity() for TLS
+            .build();
+        this.executor = Executors.newFixedThreadPool(4);
+        
+        {{#if authentication}}
+        this.apiKey = apiKey;
+        this.headers = new Metadata();
+        if (apiKey != null) {
+            Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+            this.headers.put(authKey, "Bearer " + apiKey);
+        }
+        {{/if}}
+    }
+    
+    // Note: In a real implementation, you would generate specific service stubs from .proto files
+    // For example: private final YourServiceGrpc.YourServiceBlockingStub blockingStub;
+    
+    /**
+     * Execute a synchronous gRPC call
+     * This is a generic template - in practice you'd have generated method stubs
+     * @param request The gRPC request message
+     * @param responseClass The expected response type
+     * @return The gRPC response
+     */
+    public <Req, Resp> Resp executeCall(Req request, Class<Resp> responseClass) throws StatusRuntimeException {
+        try {
+            // In a real implementation, this would use your generated gRPC stubs
+            // Example: YourServiceGrpc.YourServiceBlockingStub stub = YourServiceGrpc.newBlockingStub(channel);
+            //          if (authentication) {
+            //              stub = MetadataUtils.attachHeaders(stub, headers);
+            //          }
+            //          return stub.yourMethod(request);
+            
+            throw new UnsupportedOperationException("This is a template. Use generated gRPC stubs from your .proto files");
+        } catch (StatusRuntimeException e) {
+            throw e;
+        }
+    }
+    
+    /**
+     * Execute an asynchronous gRPC call
+     * @param request The gRPC request message
+     * @param responseClass The expected response type
+     * @return CompletableFuture with the gRPC response
+     */
+    public <Req, Resp> CompletableFuture<Resp> executeCallAsync(Req request, Class<Resp> responseClass) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return executeCall(request, responseClass);
+            } catch (StatusRuntimeException e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
+    }
+    
+    /**
+     * Shutdown the gRPC client and release resources
+     */
+    public void shutdown() throws InterruptedException {
+        if (channel != null && !channel.isShutdown()) {
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        }
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+    
+    /**
+     * Force shutdown the gRPC client immediately
+     */
+    public void shutdownNow() {
+        if (channel != null && !channel.isShutdown()) {
+            channel.shutdownNow();
+        }
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdownNow();
+        }
+    }
+    
+    /**
+     * Check if the channel is terminated
+     */
+    public boolean isTerminated() {
+        return channel == null || channel.isTerminated();
+    }
+}

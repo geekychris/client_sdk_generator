@@ -1,0 +1,5 @@
+/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/examples/libdemonstrate_enhanced_features-be401ca93f3b58c2.rmeta: examples/demonstrate_enhanced_features.rs
+
+/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/examples/demonstrate_enhanced_features-be401ca93f3b58c2.d: examples/demonstrate_enhanced_features.rs
+
+examples/demonstrate_enhanced_features.rs:

@@ -1,0 +1,225 @@
+package {{package_name}}
+
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
+)
+
+// {{class_name spec.name}} gRPC Client
+//
+// {{#if spec.description}}{{spec.description}}{{/if}}
+type {{class_name spec.name}} struct {
+	conn   *grpc.ClientConn
+	config ClientConfig
+	{{#if authentication}}
+	{{#if supports_api_key}}
+	apiKey string
+	{{/if}}
+	{{#if supports_bearer_auth}}
+	bearerToken string
+	{{/if}}
+	{{/if}}
+	{{#if retry}}
+	maxRetries int
+	{{/if}}
+}
+
+{{#if authentication}}
+// AuthConfig holds authentication configuration for gRPC
+type AuthConfig struct {
+	{{#if supports_api_key}}
+	APIKey string
+	{{/if}}
+	{{#if supports_bearer_auth}}
+	BearerToken string
+	{{/if}}
+}
+{{/if}}
+
+// ClientConfig holds gRPC client configuration
+type ClientConfig struct {
+	ServerAddress string
+	UseTLS        bool
+	TLSServerName string
+	{{#if authentication}}
+	Auth *AuthConfig
+	{{/if}}
+	{{#if retry}}
+	MaxRetries int
+	{{/if}}
+	Timeout           time.Duration
+	MaxMessageSize    int
+	KeepAliveInterval time.Duration
+	KeepAliveTimeout  time.Duration
+}
+
+// New{{class_name spec.name}} creates a new instance of {{class_name spec.name}}
+func New{{class_name spec.name}}(config ClientConfig) (*{{class_name spec.name}}, error) {
+	var opts []grpc.DialOption
+
+	// Configure TLS/credentials
+	if config.UseTLS {
+		creds := credentials.NewTLS(&tls.Config{
+			ServerName: config.TLSServerName,
+		})
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	// Configure keep-alive
+	if config.KeepAliveInterval > 0 {
+		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                config.KeepAliveInterval,
+			Timeout:             config.KeepAliveTimeout,
+			PermitWithoutStream: true,
+		}))
+	}
+
+	// Configure message size
+	if config.MaxMessageSize > 0 {
+		opts = append(opts, grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(config.MaxMessageSize),
+			grpc.MaxCallSendMsgSize(config.MaxMessageSize),
+		))
+	}
+
+	// Set default timeout if not provided
+	if config.Timeout == 0 {
+		config.Timeout = 30 * time.Second
+	}
+
+	// Establish connection
+	conn, err := grpc.Dial(config.ServerAddress, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
+	}
+
+	client := &{{class_name spec.name}}{
+		conn:   conn,
+		config: config,
+		{{#if retry}}
+		maxRetries: config.MaxRetries,
+		{{/if}}
+	}
+
+	{{#if authentication}}
+	if config.Auth != nil {
+		{{#if supports_api_key}}
+		client.apiKey = config.Auth.APIKey
+		{{/if}}
+		{{#if supports_bearer_auth}}
+		client.bearerToken = config.Auth.BearerToken
+		{{/if}}
+	}
+	{{/if}}
+
+	{{#if retry}}
+	if client.maxRetries <= 0 {
+		client.maxRetries = 3
+	}
+	{{/if}}
+
+	return client, nil
+}
+
+// Close closes the gRPC connection
+func (c *{{class_name spec.name}}) Close() error {
+	if c.conn != nil {
+		return c.conn.Close()
+	}
+	return nil
+}
+
+{{#if authentication}}
+{{#if supports_api_key}}
+// SetAPIKey updates the API key for authentication
+func (c *{{class_name spec.name}}) SetAPIKey(apiKey string) {
+	c.apiKey = apiKey
+}
+{{/if}}
+
+{{#if supports_bearer_auth}}
+// SetBearerToken updates the bearer token for authentication
+func (c *{{class_name spec.name}}) SetBearerToken(token string) {
+	c.bearerToken = token
+}
+{{/if}}
+{{/if}}
+
+// createContext creates a context with authentication metadata
+func (c *{{class_name spec.name}}) createContext(ctx context.Context) context.Context {
+	{{#if authentication}}
+	md := metadata.New(map[string]string{})
+	
+	{{#if supports_bearer_auth}}
+	if c.bearerToken != "" {
+		md.Set("authorization", "Bearer "+c.bearerToken)
+	}
+	{{/if}}
+	
+	{{#if supports_api_key}}
+	if c.apiKey != "" {
+		md.Set("x-api-key", c.apiKey)
+	}
+	{{/if}}
+	
+	if len(md) > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+	{{/if}}
+	
+	// Set timeout
+	ctx, _ = context.WithTimeout(ctx, c.config.Timeout)
+	
+	return ctx
+}
+
+{{#each services}}
+{{#each methods}}
+// {{go_name name}} {{#if description}}{{description}}{{else}}{{name}} gRPC method{{/if}}
+func (c *{{class_name ../../spec.name}}) {{go_name name}}(ctx context.Context, req *{{request_type}}) (*{{response_type}}, error) {
+	ctx = c.createContext(ctx)
+	
+	{{#if ../features.retry}}
+	var lastErr error
+	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
+	{{/if}}
+	
+	// Note: In a real implementation, you would use the generated gRPC client stub here
+	// Example:
+	// client := pb.New{{PascalCase ../../../spec.name}}Client(c.conn)
+	// return client.{{go_name name}}(ctx, req)
+	
+	// Placeholder implementation
+	{{#if ../features.retry}}
+	lastErr = fmt.Errorf("{{go_name name}} not implemented - replace with actual gRPC client call")
+	{{else}}
+	return nil, fmt.Errorf("{{go_name name}} not implemented - replace with actual gRPC client call")
+	{{/if}}
+	
+	{{#if ../features.retry}}
+	}
+	return nil, lastErr
+	{{/if}}
+}
+
+{{/each}}
+{{/each}}
+
+// GetConnection returns the underlying gRPC connection
+func (c *{{class_name spec.name}}) GetConnection() *grpc.ClientConn {
+	return c.conn
+}

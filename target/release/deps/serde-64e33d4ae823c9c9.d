@@ -1,0 +1,14 @@
+/Users/chris/code/warp_experiments/client_sdk_generator/target/release/deps/libserde-64e33d4ae823c9c9.rmeta: /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/chris/code/warp_experiments/client_sdk_generator/target/release/build/serde-3dd56da73afe95a5/out/private.rs
+
+/Users/chris/code/warp_experiments/client_sdk_generator/target/release/deps/libserde-64e33d4ae823c9c9.rlib: /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/chris/code/warp_experiments/client_sdk_generator/target/release/build/serde-3dd56da73afe95a5/out/private.rs
+
+/Users/chris/code/warp_experiments/client_sdk_generator/target/release/deps/serde-64e33d4ae823c9c9.d: /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/chris/code/warp_experiments/client_sdk_generator/target/release/build/serde-3dd56da73afe95a5/out/private.rs
+
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/chris/code/warp_experiments/client_sdk_generator/target/release/build/serde-3dd56da73afe95a5/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/chris/code/warp_experiments/client_sdk_generator/target/release/build/serde-3dd56da73afe95a5/out

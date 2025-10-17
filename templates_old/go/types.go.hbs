@@ -1,0 +1,65 @@
+package {{package_name}}
+
+import (
+	"encoding/json"
+	"time"
+)
+
+{{#each types}}
+// {{go_name}} {{#if description}}{{description}}{{else}}represents a {{name}}{{/if}}
+type {{go_name}} struct {
+	{{#each properties}}
+	{{go_name}} {{go_type}} `json:"{{json_name}}"{{#unless required}} omitempty{{/unless}}` {{#if description}}// {{description}}{{/if}}
+	{{/each}}
+}
+
+// String returns a JSON representation of {{go_name}}
+func ({{lower (substring go_name 0 1)}} *{{go_name}}) String() string {
+	data, err := json.Marshal({{lower (substring go_name 0 1)}})
+	if err != nil {
+		return fmt.Sprintf("{{go_name}}{Error: %v}", err)
+	}
+	return string(data)
+}
+
+// Validate validates the {{go_name}} struct
+func ({{lower (substring go_name 0 1)}} *{{go_name}}) Validate() error {
+	{{#each properties}}
+	{{#if required}}
+	{{#if (eq go_type "string")}}
+	if {{lower (substring ../go_name 0 1)}}.{{go_name}} == "" {
+		return fmt.Errorf("{{../go_name}}.{{go_name}} is required")
+	}
+	{{/if}}
+	{{#if (eq go_type "*string")}}
+	if {{lower (substring ../go_name 0 1)}}.{{go_name}} == nil || *{{lower (substring ../go_name 0 1)}}.{{go_name}} == "" {
+		return fmt.Errorf("{{../go_name}}.{{go_name}} is required")
+	}
+	{{/if}}
+	{{/if}}
+	{{/each}}
+	return nil
+}
+
+{{/each}}
+
+// APIError represents an error returned by the API
+type APIError struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+	Code    string `json:"code,omitempty"`
+	Details string `json:"details,omitempty"`
+}
+
+// Error implements the error interface
+func (e APIError) Error() string {
+	if e.Details != "" {
+		return fmt.Sprintf("API Error %d: %s - %s", e.Status, e.Message, e.Details)
+	}
+	return fmt.Sprintf("API Error %d: %s", e.Status, e.Message)
+}
+
+// IsRetryable returns true if the error is potentially retryable
+func (e APIError) IsRetryable() bool {
+	return e.Status >= 500 || e.Status == 429 || e.Status == 408
+}

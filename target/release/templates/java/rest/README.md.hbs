@@ -1,0 +1,219 @@
+# {{spec.name}} Java Client SDK
+
+{{#if spec.description}}
+{{spec.description}}
+{{/if}}
+
+This is a generated Java client SDK for the {{spec.name}} API (version {{spec.version}}). 
+
+## Features
+
+{{#if features.async}}
+- ✅ Async support with CompletableFuture
+{{/if}}
+{{#if features.retry}}
+- ✅ Automatic retry with configurable backoff
+{{/if}}
+{{#if features.caching}}
+- ✅ Response caching
+{{/if}}
+{{#if features.telemetry}}
+- ✅ Built-in metrics and telemetry
+{{/if}}
+- ✅ Jackson JSON serialization
+- ✅ Comprehensive error handling
+- ✅ Unit tests included
+
+## Requirements
+
+- Java 21 or higher
+- Maven 3.6 or higher
+
+## Installation
+
+Add this dependency to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>{{package}}</groupId>
+    <artifactId>{{config.output_config.package_name}}</artifactId>
+    <version>{{version}}</version>
+</dependency>
+```
+
+## Quick Start
+
+### Basic Usage
+
+```java
+import {{package}}.ClientConfig;
+import {{package}}.{{class_name spec.name}}Client;
+
+// Create a configuration
+ClientConfig config = new ClientConfig("https://api.example.com")
+    .setConnectTimeoutSeconds(30)
+    .setRequestTimeoutSeconds(60);
+
+// Create the client
+{{class_name spec.name}}Client client = new {{class_name spec.name}}Client(config);
+
+{{#each spec.operations}}
+{{#if @first}}
+// Example usage: {{description}}
+{{#if parameters}}
+{{#each parameters}}
+// {{type_mapping data_type}} {{camel_case name}} = ...; // {{description}}
+{{/each}}
+{{/if}}
+{{#if request_body}}
+// {{type_mapping request_body}} request = ...; // Request body
+{{/if}}
+{{#each responses}}
+{{#if @first}}
+{{#if data_type}}{{type_mapping data_type}} response = client.{{method_name ../name}}({{#each ../parameters}}{{camel_case name}}{{#unless @last}}, {{/unless}}{{/each}}{{#if ../request_body}}{{#if ../parameters}}, {{/if}}request{{/if}});{{else}}client.{{method_name ../name}}({{#each ../parameters}}{{camel_case name}}{{#unless @last}}, {{/unless}}{{/each}}{{#if ../request_body}}{{#if ../parameters}}, {{/if}}request{{/if}});{{/if}}
+{{/if}}
+{{/each}}
+{{/if}}
+{{/each}}
+```
+
+{{#if features.async}}
+### Async Usage
+
+```java
+import {{package}}.{{class_name spec.name}}AsyncClient;
+import java.util.concurrent.CompletableFuture;
+
+// Create async client
+{{class_name spec.name}}AsyncClient asyncClient = new {{class_name spec.name}}AsyncClient(config);
+
+{{#each spec.operations}}
+{{#if @first}}
+// Async example: {{description}}
+{{#each responses}}
+{{#if @first}}
+CompletableFuture<{{#if data_type}}{{type_mapping data_type}}{{else}}Void{{/if}}> future = asyncClient.{{method_name ../name}}Async({{#each ../parameters}}{{camel_case name}}{{#unless @last}}, {{/unless}}{{/each}}{{#if ../request_body}}{{#if ../parameters}}, {{/if}}request{{/if}});
+
+future.thenAccept(result -> {
+    // Handle the result
+    System.out.println("Response received: " + result);
+}).exceptionally(throwable -> {
+    // Handle errors
+    System.err.println("Error occurred: " + throwable.getMessage());
+    return null;
+});
+{{/if}}
+{{/each}}
+{{/if}}
+{{/each}}
+```
+{{/if}}
+
+### Configuration Options
+
+```java
+ClientConfig config = new ClientConfig("https://api.example.com")
+    .setConnectTimeoutSeconds(30)      // Connection timeout
+    .setRequestTimeoutSeconds(60)      // Request timeout
+    .setUserAgent("MyApp/1.0")        // Custom user agent
+    .setApiKey("your-api-key")        // API key authentication
+    .setBearerToken("your-token");    // Bearer token authentication
+
+{{#if features.retry}}
+// Retry configuration
+config.setRetryEnabled(true)
+      .setMaxRetries(3)
+      .setRetryDelayMs(1000);
+{{/if}}
+
+{{#if features.caching}}
+// Caching configuration
+config.setCachingEnabled(true)
+      .setCacheMaxSize(1000)
+      .setCacheTtlSeconds(300);
+{{/if}}
+
+{{#if features.telemetry}}
+// Telemetry configuration
+config.setTelemetryEnabled(true)
+      .setMetricsEndpoint("https://metrics.example.com");
+{{/if}}
+```
+
+## API Operations
+
+{{#each spec.operations}}
+### {{name}}
+
+{{#if description}}
+{{description}}
+{{/if}}
+
+**Method:** `{{method}} {{path}}`
+
+{{#if parameters}}
+**Parameters:**
+{{#each parameters}}
+- `{{camel_case name}}` ({{type_mapping data_type}}){{#if required}} *required*{{/if}} - {{description}}
+{{/each}}
+{{/if}}
+
+{{#if request_body}}
+**Request Body:** {{type_mapping request_body}}
+{{/if}}
+
+**Response:** {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}void{{/if}}{{/if}}{{/each}}
+
+{{#if deprecated}}
+⚠️ **This operation is deprecated**
+{{/if}}
+
+---
+
+{{/each}}
+
+## Error Handling
+
+The client throws `{{class_name spec.name}}Exception` for API errors:
+
+```java
+try {
+    {{#each spec.operations}}
+    {{#if @first}}
+    {{#each responses}}
+    {{#if @first}}
+    {{#if data_type}}{{type_mapping data_type}} result = client.{{method_name ../name}}(...);{{else}}client.{{method_name ../name}}(...);{{/if}}
+    {{/if}}
+    {{/each}}
+    {{/if}}
+    {{/each}}
+} catch ({{class_name spec.name}}Exception e) {
+    System.err.println("API Error: " + e.getMessage());
+}
+```
+
+## Building
+
+```bash
+mvn clean compile
+```
+
+## Testing
+
+```bash
+mvn test
+```
+
+## Documentation
+
+For more detailed documentation, see the [API Documentation](api.md).
+
+{{#if config.output_config.license}}
+## License
+
+This project is licensed under the {{config.output_config.license}} License.
+{{/if}}
+
+---
+
+*This client SDK was generated automatically. Do not modify it directly.*

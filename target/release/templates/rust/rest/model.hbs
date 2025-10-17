@@ -1,0 +1,126 @@
+//! {{type.description}}
+//! {{#if type.deprecated}}
+//! 
+//! **Deprecated**: This type is deprecated
+//! {{/if}}
+
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+{{#if (or (contains_date_type type.properties) (contains_datetime_type type.properties))}}
+use chrono::{DateTime, NaiveDate, Utc};
+{{/if}}
+{{#each type.properties}}
+{{!-- TODO: Add proper import generation for Object types --}}
+{{/each}}
+
+/// {{type.description}}
+{{#if type.deprecated}}
+#[deprecated]
+{{/if}}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+{{#if type.additional_properties}}
+#[serde(flatten)]
+{{/if}}
+pub struct {{class_name type.name}} {
+    {{#each type.properties}}
+    /// {{description}}
+    {{#if deprecated}}
+    #[deprecated]
+    {{/if}}
+    {{#unless required}}
+    #[serde(skip_serializing_if = "Option::is_none")]
+    {{/unless}}
+    {{#if (ne name (snake_case name))}}
+    #[serde(rename = "{{name}}")]
+    {{/if}}
+    pub {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Option<{{type_mapping data_type}}>{{/if}},
+    
+    {{/each}}
+    {{#if type.additional_properties}}
+    /// Additional properties not covered by the schema
+    #[serde(flatten)]
+    pub additional_properties: HashMap<String, serde_json::Value>,
+    {{/if}}
+}
+
+impl {{class_name type.name}} {
+    /// Create a new instance with required fields
+    pub fn new({{#each type.properties}}{{#if required}}{{snake_case name}}: {{type_mapping data_type}}{{#unless @last}}, {{/unless}}{{/if}}{{/each}}) -> Self {
+        Self {
+            {{#each type.properties}}
+            {{#if required}}
+            {{snake_case name}},
+            {{else}}
+            {{snake_case name}}: None,
+            {{/if}}
+            {{/each}}
+            {{#if type.additional_properties}}
+            additional_properties: HashMap::new(),
+            {{/if}}
+        }
+    }
+    
+    {{#each type.properties}}
+    {{#unless required}}
+    /// Set {{description}}
+    pub fn with_{{snake_case name}}(mut self, {{snake_case name}}: {{type_mapping data_type}}) -> Self {
+        self.{{snake_case name}} = Some({{snake_case name}});
+        self
+    }
+    {{/unless}}
+    
+    {{/each}}
+    
+    {{#if type.additional_properties}}
+    /// Add an additional property
+    pub fn with_additional_property<K, V>(mut self, key: K, value: V) -> Self 
+    where
+        K: Into<String>,
+        V: Into<serde_json::Value>,
+    {
+        self.additional_properties.insert(key.into(), value.into());
+        self
+    }
+    {{/if}}
+    
+    /// Validate the instance
+    pub fn validate(&self) -> Result<(), String> {
+        // Add validation logic here if needed
+        {{#each type.properties}}
+        {{#if required}}
+        // {{snake_case name}} is required and present
+        {{/if}}
+        {{/each}}
+        Ok(())
+    }
+}
+
+impl Default for {{class_name type.name}} {
+    fn default() -> Self {
+        Self {
+            {{#each type.properties}}
+            {{#if required}}
+            {{snake_case name}}: Default::default(),
+            {{else}}
+            {{snake_case name}}: None,
+            {{/if}}
+            {{/each}}
+            {{#if type.additional_properties}}
+            additional_properties: HashMap::new(),
+            {{/if}}
+        }
+    }
+}
+
+impl std::fmt::Display for {{class_name type.name}} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{class_name type.name}} \{ ")?;
+        {{#each type.properties}}
+        write!(f, "{{snake_case name}}: {:?}", self.{{snake_case name}})?;
+        {{#unless @last}}
+        write!(f, ", ")?;
+        {{/unless}}
+        {{/each}}
+        write!(f, " \}")
+    }
+}

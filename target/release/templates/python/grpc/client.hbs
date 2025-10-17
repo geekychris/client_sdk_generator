@@ -1,0 +1,256 @@
+"""
+{{spec.description}}
+
+Generated gRPC SDK for {{spec.name}} v{{spec.version}}
+"""
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+import grpc
+import asyncio
+from typing import Optional, Dict, Any, List, Union
+from dataclasses import dataclass, asdict
+import json
+import time
+{{#if features.caching}}
+from .cache_handler import CacheHandler
+{{/if}}
+{{#if features.telemetry}}
+from .telemetry_handler import TelemetryHandler
+{{/if}}
+
+from .config import ClientConfig
+from .exceptions import {{class_name spec.name}}Exception
+{{#each spec.types}}
+from .models.{{snake_case name}} import {{class_name name}}
+{{/each}}
+
+
+class {{class_name spec.name}}Client:
+    """{{spec.description}}"""
+    
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.server_address = config.base_url
+        self._channel = None
+        self._stub = None
+        
+        {{#if features.telemetry}}
+        self.telemetry = TelemetryHandler()
+        {{/if}}
+        
+        {{#if features.caching}}
+        self.cache = CacheHandler()
+        {{/if}}
+    
+    def __enter__(self):
+        self.connect()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+    
+    def connect(self):
+        """Establish gRPC connection"""
+        if self._channel is None:
+            self._channel = grpc.insecure_channel(self.server_address)
+            # Note: In a real implementation, you'd import the generated gRPC stub
+            # self._stub = YourServiceStub(self._channel)
+    
+    def close(self):
+        """Close gRPC connection"""
+        if self._channel:
+            self._channel.close()
+            self._channel = None
+            self._stub = None
+    
+    {{#each spec.operations}}
+    def {{snake_case name}}(self{{#each parameters}}, {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Optional[{{type_mapping data_type}}] = None{{/if}}{{/each}}{{#if request_body}}, request: {{type_mapping request_body}}{{/if}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}None{{/if}}{{/if}}{{/each}}:
+        """{{description}}
+        {{#if deprecated}}
+        
+        .. deprecated:: This operation is deprecated
+        {{/if}}
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        {{#if request_body}}
+            request: The request body
+        {{/if}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache.generate_cache_key("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+        {{#each responses}}{{#if @first}}{{#if data_type}}
+        cached_result = self.cache.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}{{/if}}{{/each}}
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            if not self._channel:
+                self.connect()
+            
+            # Build gRPC request
+            # Note: In a real implementation, you'd create the proper request message
+            # grpc_request = YourRequestMessage(...)
+            
+            {{#if features.retry}}
+            result = self._execute_with_retry(
+                lambda: None  # self._stub.{{PascalCase name}}(grpc_request)
+            )
+            {{else}}
+            # result = self._stub.{{PascalCase name}}(grpc_request)
+            result = None  # Placeholder for gRPC call
+            {{/if}}
+            
+            {{#if features.caching}}
+            # Cache the result
+            if result is not None:
+                self.cache.put_in_cache(cache_key, result)
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("gRPC", "{{name}}", duration, True)
+            {{/if}}
+            
+            return result
+            
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("gRPC", "{{name}}", duration, False)
+            {{/if}}
+            raise {{class_name ../spec.name}}Exception(f"Failed to execute {{name}}: {str(e)}") from e
+    
+    {{/each}}
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+
+
+{{#if features.async}}
+class {{class_name spec.name}}AsyncClient:
+    """Async version of {{class_name spec.name}}Client"""
+    
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.server_address = config.base_url
+        self._channel = None
+        self._stub = None
+        
+        {{#if features.telemetry}}
+        self.telemetry = TelemetryHandler()
+        {{/if}}
+        
+        {{#if features.caching}}
+        self.cache = CacheHandler()
+        {{/if}}
+    
+    async def __aenter__(self):
+        await self.connect()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+    
+    async def connect(self):
+        """Establish async gRPC connection"""
+        if self._channel is None:
+            self._channel = grpc.aio.insecure_channel(self.server_address)
+            # Note: In a real implementation, you'd import the generated gRPC stub
+            # self._stub = YourServiceStub(self._channel)
+    
+    async def close(self):
+        """Close async gRPC connection"""
+        if self._channel:
+            await self._channel.close()
+            self._channel = None
+            self._stub = None
+    
+    {{#each spec.operations}}
+    async def {{snake_case name}}(self{{#each parameters}}, {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Optional[{{type_mapping data_type}}] = None{{/if}}{{/each}}{{#if request_body}}, request: {{type_mapping request_body}}{{/if}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}None{{/if}}{{/if}}{{/each}}:
+        """{{description}} (async version)
+        {{#if deprecated}}
+        
+        .. deprecated:: This operation is deprecated
+        {{/if}}
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        {{#if request_body}}
+            request: The request body
+        {{/if}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache.generate_cache_key("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+        {{#each responses}}{{#if @first}}{{#if data_type}}
+        cached_result = self.cache.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}{{/if}}{{/each}}
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            if not self._channel:
+                await self.connect()
+            
+            # Build gRPC request
+            # Note: In a real implementation, you'd create the proper request message
+            # grpc_request = YourRequestMessage(...)
+            
+            {{#if features.retry}}
+            result = await self._execute_with_retry(
+                lambda: None  # await self._stub.{{PascalCase name}}(grpc_request)
+            )
+            {{else}}
+            # result = await self._stub.{{PascalCase name}}(grpc_request)
+            result = None  # Placeholder for async gRPC call
+            {{/if}}
+            
+            {{#if features.caching}}
+            # Cache the result
+            if result is not None:
+                self.cache.put_in_cache(cache_key, result)
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("gRPC", "{{name}}", duration, True)
+            {{/if}}
+            
+            return result
+            
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry.record_request("gRPC", "{{name}}", duration, False)
+            {{/if}}
+            raise {{class_name ../spec.name}}Exception(f"Failed to execute {{name}}: {str(e)}") from e
+    
+    {{/each}}
+{{/if}}

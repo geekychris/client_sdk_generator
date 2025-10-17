@@ -1,0 +1,217 @@
+//! {{spec.description}}
+//! 
+//! Generated SDK for {{spec.name}} v{{spec.version}}
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+use reqwest::{Client, Response};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::Duration;
+use url::Url;
+{{#if features.caching}}
+use crate::cache::CacheHandler;
+{{/if}}
+{{#if features.telemetry}}
+use crate::telemetry::TelemetryHandler;
+{{/if}}
+
+use crate::config::ClientConfig;
+use crate::error::{{class_name spec.name}}Error;
+use crate::error::Result;
+{{#each spec.types}}
+use crate::models::{{snake_case name}}::{{class_name name}};
+{{/each}}
+
+/// {{spec.description}}
+pub struct {{class_name spec.name}}Client {
+    client: Client,
+    base_url: Url,
+    config: ClientConfig,
+    {{#if features.telemetry}}
+    telemetry: TelemetryHandler,
+    {{/if}}
+    {{#if features.caching}}
+    cache: CacheHandler,
+    {{/if}}
+}
+
+impl {{class_name spec.name}}Client {
+    /// Create a new client instance
+    pub fn new(config: ClientConfig) -> Result<Self> {
+        let base_url = Url::parse(&config.base_url)
+            .map_err(|e| {{class_name spec.name}}Error::Configuration(format!("Invalid base URL: {}", e)))?;
+        
+        let client = Client::builder()
+            .timeout(Duration::from_secs(config.timeout_seconds))
+            .build()
+            .map_err(|e| {{class_name spec.name}}Error::Http(e))?;
+        
+        Ok(Self {
+            client,
+            base_url,
+            config,
+            {{#if features.telemetry}}
+            telemetry: TelemetryHandler::new(),
+            {{/if}}
+            {{#if features.caching}}
+            cache: CacheHandler::new(),
+            {{/if}}
+        })
+    }
+    
+    {{#each spec.operations}}
+    /// {{description}}
+    {{#if deprecated}}
+    #[deprecated]
+    {{/if}}
+    pub async fn {{snake_case name}}(
+        &self,
+        {{#each parameters}}
+        {{snake_case name}}: {{#if required}}{{type_mapping data_type}}{{else}}Option<{{type_mapping data_type}}>{{/if}},
+        {{/each}}
+        {{#if request_body}}
+        request: {{type_mapping request_body}},
+        {{/if}}
+    ) -> Result<{{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{else}}(){{/if}}{{/if}}{{/each}}> {
+        {{#if features.caching}}
+        // Check cache first
+        let cache_key = self.cache.generate_cache_key("{{name}}"{{#each parameters}}, &{{snake_case name}}{{/each}});
+        {{#each responses}}{{#if @first}}{{#if data_type}}
+        if let Some(cached_result) = self.cache.get_from_cache(&cache_key).await {
+            return Ok(cached_result);
+        }
+        {{/if}}{{/if}}{{/each}}
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        let start_time = std::time::Instant::now();
+        {{/if}}
+        
+        let result = async {
+            let mut url = self.build_url("{{path}}"{{#each parameters}}{{#if (eq parameter_type "Path")}}, &{{snake_case name}}{{/if}}{{/each}})?;
+            
+            // Add query parameters
+            {
+                let mut query_pairs = url.query_pairs_mut();
+                {{#each parameters}}
+                {{#if (eq parameter_type "Query")}}
+                {{#if required}}
+                query_pairs.append_pair("{{name}}", &{{snake_case name}}.to_string());
+                {{else}}
+                if let Some(ref value) = {{snake_case name}} {
+                    query_pairs.append_pair("{{name}}", &value.to_string());
+                }
+                {{/if}}
+                {{/if}}
+                {{/each}}
+            }
+            
+            let mut request_builder = self.client.request(
+                reqwest::Method::{{upper_case method}},
+                url.as_str()
+            );
+            
+            // Add headers
+            {{#each parameters}}
+            {{#if (eq parameter_type "Header")}}
+            {{#if required}}
+            request_builder = request_builder.header("{{name}}", {{snake_case name}}.to_string());
+            {{else}}
+            if let Some(ref value) = {{snake_case name}} {
+                request_builder = request_builder.header("{{name}}", value.to_string());
+            }
+            {{/if}}
+            {{/if}}
+            {{/each}}
+            
+            // Add request body
+            {{#if request_body}}
+            request_builder = request_builder.json(&request);
+            {{/if}}
+            
+            let response = request_builder.send().await
+                .map_err({{class_name ../spec.name}}Error::Http)?;
+            
+            self.parse_response(response).await
+        }.await;
+        
+        {{#if features.telemetry}}
+        let duration = start_time.elapsed();
+        self.telemetry.record_request(
+            "{{method}}", 
+            "{{path}}", 
+            duration.as_secs_f64(), 
+            result.is_ok()
+        );
+        {{/if}}
+        
+        match result {
+            Ok(parsed_result) => {
+                {{#if features.caching}}
+                self.cache.put_in_cache(cache_key, &parsed_result).await;
+                {{/if}}
+                Ok(parsed_result)
+            }
+            Err(e) => Err(e),
+        }
+    }
+    
+    {{/each}}
+    
+    fn build_url(&self, path: &str{{#each spec.operations}}{{#each parameters}}{{#if (eq parameter_type "Path")}}, {{snake_case name}}: &{{type_mapping data_type}}{{/if}}{{/each}}{{/each}}) -> Result<Url> {
+        let mut url = self.base_url.join(path.trim_start_matches('/'))
+            .map_err(|e| {{class_name spec.name}}Error::Url(e))?;
+        
+        // Replace path parameters
+        let path_str = url.path().to_string();
+        {{#each spec.operations}}
+        {{#each parameters}}
+        {{#if (eq parameter_type "Path")}}
+        let path_str = path_str.replace(&format!("{{{name}}}"), &{{snake_case name}}.to_string());
+        {{/if}}
+        {{/each}}
+        {{/each}}
+        
+        url.set_path(&path_str);
+        Ok(url)
+    }
+    
+    async fn parse_response<T>(&self, response: Response) -> Result<T> 
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let status = response.status();
+        
+        if status.is_success() {
+            if status == reqwest::StatusCode::NO_CONTENT {
+                // For void responses, we need to handle this case
+                // This is a workaround for the type system
+                return Err({{class_name spec.name}}Error::Parsing("No content to parse".to_string()));
+            }
+            
+            let text = response.text().await
+                .map_err({{class_name spec.name}}Error::Http)?;
+            
+            serde_json::from_str(&text)
+                .map_err(|e| {{class_name spec.name}}Error::Parsing(format!("Failed to parse JSON: {}", e)))
+        } else {
+            let error_text = response.text().await
+                .unwrap_or_else(|_| format!("HTTP {}", status));
+            Err({{class_name spec.name}}Error::Api(status.as_u16(), error_text))
+        }
+    }
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+}
+
+impl Default for {{class_name spec.name}}Client {
+    fn default() -> Self {
+        let config = ClientConfig::default();
+        Self::new(config).expect("Failed to create default client")
+    }
+}

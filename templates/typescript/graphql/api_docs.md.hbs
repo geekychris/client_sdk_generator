@@ -1,0 +1,690 @@
+# {{api_name}} GraphQL API Documentation
+
+{{#if description}}{{description}}{{/if}}
+
+TypeScript GraphQL client SDK for {{api_name}}.
+
+**Version:** {{api_version}}
+
+## Installation
+
+```bash
+npm install {{package_name}}
+# or
+yarn add {{package_name}}
+```
+
+## Quick Start
+
+```typescript
+import { GraphQLClient } from '{{package_name}}';
+
+const client = new GraphQLClient({
+  endpoint: '{{base_url}}',
+  {{#if authentication}}
+  auth: {
+    {{#if supports_api_key}}
+    apiKey: 'your-api-key',
+    {{/if}}
+    {{#if supports_bearer_auth}}
+    bearerToken: 'your-token',
+    {{/if}}
+  },
+  {{/if}}
+});
+
+// Execute a query
+const result = await client.query(`
+  query {
+    users {
+      id
+      name
+      email
+    }
+  }
+`);
+
+console.log(result.data);
+```
+
+## Authentication
+
+{{#if authentication}}
+This API uses {{authentication.auth_type}} authentication.
+
+{{#if (eq authentication.auth_type "ApiKey")}}
+### API Key Authentication
+
+```typescript
+const client = new GraphQLClient({
+  endpoint: '{{base_url}}',
+  auth: {
+    apiKey: 'your-api-key-here',
+  },
+});
+```
+
+{{#if (eq authentication.location "Header")}}
+The API key will be sent in the `{{authentication.parameter_name}}` header.
+{{/if}}
+{{#if (eq authentication.location "Query")}}
+The API key will be sent as the `{{authentication.parameter_name}}` query parameter.
+{{/if}}
+{{/if}}
+
+{{#if (eq authentication.auth_type "Http")}}
+### Bearer Token Authentication
+
+```typescript
+const client = new GraphQLClient({
+  endpoint: '{{base_url}}',
+  auth: {
+    bearerToken: 'your-bearer-token-here',
+  },
+});
+```
+{{/if}}
+
+{{else}}
+No authentication is required for this API.
+{{/if}}
+
+## GraphQL Operations
+
+### Queries
+
+Execute GraphQL queries to fetch data:
+
+```typescript
+// Simple query
+const usersQuery = `
+  query GetUsers {
+    users {
+      id
+      name
+      email
+      createdAt
+    }
+  }
+`;
+
+const result = await client.query<{ users: User[] }>(usersQuery);
+console.log(result.data.users);
+
+// Query with variables
+const userQuery = `
+  query GetUser($id: ID!) {
+    user(id: $id) {
+      id
+      name
+      email
+      profile {
+        bio
+        avatarUrl
+      }
+    }
+  }
+`;
+
+const userResult = await client.query<{ user: User }>(userQuery, {
+  variables: { id: '123' },
+});
+```
+
+### Mutations
+
+Execute GraphQL mutations to modify data:
+
+```typescript
+// Create operation
+const createUserMutation = `
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      id
+      name
+      email
+      createdAt
+    }
+  }
+`;
+
+const createResult = await client.mutate<{ createUser: User }>(
+  createUserMutation,
+  {
+    variables: {
+      input: {
+        name: 'John Doe',
+        email: 'john@example.com',
+      },
+    },
+  }
+);
+
+// Update operation
+const updateUserMutation = `
+  mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
+    updateUser(id: $id, input: $input) {
+      id
+      name
+      email
+      updatedAt
+    }
+  }
+`;
+
+const updateResult = await client.mutate<{ updateUser: User }>(
+  updateUserMutation,
+  {
+    variables: {
+      id: '123',
+      input: {
+        name: 'John Smith',
+      },
+    },
+  }
+);
+
+// Delete operation
+const deleteUserMutation = `
+  mutation DeleteUser($id: ID!) {
+    deleteUser(id: $id) {
+      success
+      message
+    }
+  }
+`;
+
+const deleteResult = await client.mutate<{ deleteUser: DeleteResult }>(
+  deleteUserMutation,
+  {
+    variables: { id: '123' },
+  }
+);
+```
+
+### Subscriptions
+
+Execute GraphQL subscriptions for real-time updates:
+
+```typescript
+// Simple subscription
+const userUpdatesSubscription = `
+  subscription UserUpdates {
+    userUpdates {
+      id
+      name
+      status
+      lastSeen
+    }
+  }
+`;
+
+// Using async iteration
+for await (const update of client.subscribe<{ userUpdates: UserUpdate }>(
+  userUpdatesSubscription
+)) {
+  console.log('User updated:', update.data.userUpdates);
+}
+
+// Using callback-based subscription
+const unsubscribe = client.subscribe<{ userUpdates: UserUpdate }>(
+  userUpdatesSubscription,
+  {
+    next: (result) => {
+      console.log('User updated:', result.data.userUpdates);
+    },
+    error: (error) => {
+      console.error('Subscription error:', error);
+    },
+    complete: () => {
+      console.log('Subscription completed');
+    },
+  }
+);
+
+// Unsubscribe when done
+// unsubscribe();
+
+// Subscription with variables
+const notificationsSubscription = `
+  subscription UserNotifications($userId: ID!) {
+    notifications(userId: $userId) {
+      id
+      message
+      type
+      createdAt
+      read
+    }
+  }
+`;
+
+for await (const notification of client.subscribe<{ notifications: Notification }>(
+  notificationsSubscription,
+  {
+    variables: { userId: '123' },
+  }
+)) {
+  console.log('New notification:', notification.data.notifications);
+}
+```
+
+## Data Types
+
+{{#each types}}
+### {{name}}
+
+{{#if description}}{{description}}{{else}}{{name}} type definition{{/if}}
+
+```typescript
+interface {{name}} {
+  {{#each properties}}
+  {{camel_case name}}{{#unless required}}?{{/unless}}: {{ts_type data_type}};{{#if description}} // {{description}}{{/if}}
+  {{/each}}
+}
+```
+
+{{#if (eq type "enum")}}
+**Enum Values:**
+{{#each enum_values}}
+- `{{this}}`
+{{/each}}
+{{/if}}
+
+**Usage:**
+```typescript
+// Creating a {{name}} object
+const {{camel_case name}}: {{name}} = {
+  {{#each properties}}
+  {{#if required}}
+  {{camel_case name}}: {{#if (eq data_type "string")}}'example'{{else if (eq data_type "number")}}0{{else if (eq data_type "boolean")}}false{{else}}null{{/if}},
+  {{/if}}
+  {{/each}}
+};
+```
+
+---
+
+{{/each}}
+
+## Advanced Usage
+
+### Type-Safe Queries
+
+Use TypeScript generics for type-safe GraphQL operations:
+
+```typescript
+interface UsersQueryResult {
+  users: User[];
+}
+
+interface UserQueryResult {
+  user: User;
+}
+
+interface CreateUserResult {
+  createUser: User;
+}
+
+// Type-safe query
+const result = await client.query<UsersQueryResult>(`
+  query {
+    users {
+      id
+      name
+      email
+    }
+  }
+`);
+
+// result.data.users is now properly typed as User[]
+result.data.users.forEach(user => {
+  console.log(user.name); // TypeScript knows this is a string
+});
+```
+
+### Fragment Usage
+
+Define and reuse GraphQL fragments:
+
+```typescript
+const userFragment = `
+  fragment UserInfo on User {
+    id
+    name
+    email
+    createdAt
+  }
+`;
+
+const query = `
+  ${userFragment}
+  
+  query GetUsers {
+    users {
+      ...UserInfo
+      profile {
+        bio
+        avatarUrl
+      }
+    }
+  }
+`;
+
+const result = await client.query(query);
+```
+
+### Error Handling
+
+Handle GraphQL errors and network issues:
+
+```typescript
+import { GraphQLClient, GraphQLClientError } from '{{package_name}}';
+
+try {
+  const result = await client.query(`
+    query {
+      user(id: "invalid-id") {
+        id
+        name
+      }
+    }
+  `);
+} catch (error) {
+  if (error instanceof GraphQLClientError) {
+    console.error('GraphQL Error:', error.message);
+    
+    // Handle GraphQL errors
+    if (error.graphqlErrors && error.graphqlErrors.length > 0) {
+      error.graphqlErrors.forEach((gqlError, index) => {
+        console.error(`GraphQL Error ${index + 1}:`, gqlError.message);
+        if (gqlError.path) {
+          console.error('Path:', gqlError.path);
+        }
+        if (gqlError.extensions) {
+          console.error('Extensions:', gqlError.extensions);
+        }
+      });
+    }
+    
+    // Handle network errors
+    if (error.networkError) {
+      console.error('Network Error:', error.networkError);
+    }
+    
+    // Handle response errors
+    if (error.response) {
+      console.error('Response Status:', error.response.status);
+      console.error('Response Data:', error.response.data);
+    }
+  } else {
+    console.error('Unexpected Error:', error);
+  }
+}
+```
+
+### Request Configuration
+
+Configure individual requests:
+
+```typescript
+// With custom headers
+const result = await client.query(
+  `query { users { id name } }`,
+  {
+    headers: {
+      'X-Custom-Header': 'custom-value',
+    },
+  }
+);
+
+// With timeout
+const result = await client.query(
+  `query { users { id name } }`,
+  {
+    timeout: 10000, // 10 seconds
+  }
+);
+
+// With context/metadata
+const result = await client.query(
+  `query { users { id name } }`,
+  {
+    context: {
+      requestId: 'unique-request-id',
+      userId: '123',
+    },
+  }
+);
+```
+
+### Cancelling Requests
+
+Cancel requests using AbortController:
+
+```typescript
+// Create an AbortController
+const controller = new AbortController();
+
+// Pass the signal to the request
+const queryPromise = client.query(
+  `query { users { id name } }`,
+  {
+    signal: controller.signal,
+  }
+);
+
+// Cancel the request after 5 seconds
+setTimeout(() => {
+  controller.abort();
+}, 5000);
+
+try {
+  const result = await queryPromise;
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request was cancelled');
+  }
+}
+```
+
+## Configuration Options
+
+### Client Configuration
+
+```typescript
+interface GraphQLClientConfig {
+  /** GraphQL endpoint URL */
+  endpoint: string;
+  
+  /** Authentication configuration */
+  auth?: {
+    apiKey?: string;
+    bearerToken?: string;
+  };
+  
+  /** Default headers for all requests */
+  headers?: Record<string, string>;
+  
+  /** Default timeout in milliseconds */
+  timeout?: number;
+  
+  /** Maximum number of retries for failed requests */
+  maxRetries?: number;
+  
+  /** Enable request/response caching */
+  cache?: boolean;
+  
+  /** Cache TTL in milliseconds */
+  cacheMaxAge?: number;
+  
+  /** WebSocket URL for subscriptions */
+  subscriptionEndpoint?: string;
+  
+  /** WebSocket connection options */
+  wsOptions?: {
+    /** Connection timeout */
+    connectionTimeout?: number;
+    /** Reconnection attempts */
+    maxReconnectAttempts?: number;
+    /** Reconnection interval */
+    reconnectInterval?: number;
+  };
+}
+```
+
+### Environment Configuration
+
+Configure using environment variables:
+
+```typescript
+// .env file
+GRAPHQL_ENDPOINT=https://api.example.com/graphql
+API_KEY=your-api-key
+REQUEST_TIMEOUT=30000
+ENABLE_CACHE=true
+
+// Usage
+const client = new GraphQLClient({
+  endpoint: process.env.GRAPHQL_ENDPOINT!,
+  auth: {
+    apiKey: process.env.API_KEY,
+  },
+  timeout: parseInt(process.env.REQUEST_TIMEOUT || '30000'),
+  cache: process.env.ENABLE_CACHE === 'true',
+});
+```
+
+## Response Types
+
+### GraphQL Result
+
+```typescript
+interface GraphQLResult<T = any> {
+  /** Query result data */
+  data?: T;
+  
+  /** GraphQL errors */
+  errors?: GraphQLError[];
+  
+  /** Response extensions */
+  extensions?: Record<string, any>;
+}
+```
+
+### GraphQL Error
+
+```typescript
+interface GraphQLError {
+  /** Error message */
+  message: string;
+  
+  /** Error locations in the query */
+  locations?: Array<{
+    line: number;
+    column: number;
+  }>;
+  
+  /** Error path in the result */
+  path?: Array<string | number>;
+  
+  /** Additional error information */
+  extensions?: Record<string, any>;
+}
+```
+
+### Client Error Types
+
+```typescript
+// Base error class
+class GraphQLClientError extends Error {
+  graphqlErrors?: GraphQLError[];
+  networkError?: Error;
+  response?: Response;
+  
+  constructor(message: string);
+}
+
+// Specific error types
+class ValidationError extends GraphQLClientError {}
+class NetworkError extends GraphQLClientError {}
+class AuthenticationError extends GraphQLClientError {}
+class TimeoutError extends GraphQLClientError {}
+class SubscriptionError extends GraphQLClientError {}
+```
+
+## Performance Tips
+
+### Query Optimization
+
+```typescript
+// Use specific field selection
+const efficientQuery = `
+  query GetUsers {
+    users {
+      id
+      name
+      # Only fetch fields you need
+    }
+  }
+`;
+
+// Avoid over-fetching with fragments
+const userFragment = `
+  fragment MinimalUser on User {
+    id
+    name
+  }
+`;
+
+// Use pagination for large datasets
+const paginatedQuery = `
+  query GetUsers($first: Int!, $after: String) {
+    users(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+```
+
+### Caching
+
+```typescript
+// Enable caching
+const client = new GraphQLClient({
+  endpoint: '{{base_url}}',
+  cache: true,
+  cacheMaxAge: 5 * 60 * 1000, // 5 minutes
+});
+
+// Cache-specific query
+const result = await client.query(
+  `query { users { id name } }`,
+  {
+    cache: true,
+    cacheKey: 'users-list', // Custom cache key
+  }
+);
+```
+
+### Batch Operations
+
+```typescript
+// Execute multiple operations in parallel
+const [usersResult, postsResult] = await Promise.all([
+  client.query(`query { users { id name } }`),
+  client.query(`query { posts { id title } }`),
+]);
+```
+
+---
+
+*This documentation was generated automatically from the GraphQL schema.*

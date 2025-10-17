@@ -1,0 +1,42 @@
+[package]
+name = "{{kebab_case package}}"
+version = "{{version}}"
+{{#if author}}
+authors = ["{{author}}"]
+{{/if}}
+{{#if license}}
+license = "{{license}}"
+{{/if}}
+edition = "2021"
+description = "Auto-generated SDK for {{spec.name}}"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+url = "2.0"
+anyhow = "1.0"
+{{#if features.caching}}
+moka = { version = "0.12", features = ["future"] }
+{{/if}}
+{{#if features.telemetry}}
+tracing = "0.1"
+opentelemetry = "0.20"
+{{/if}}
+{{#if features.retry}}
+exponential-backoff = "2.0"
+{{/if}}
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.0"
+
+[lib]
+name = "{{snake_case package}}"
+path = "src/lib.rs"
+
+[[bin]]
+name = "{{kebab_case package}}-cli"
+path = "src/main.rs"
+required-features = []

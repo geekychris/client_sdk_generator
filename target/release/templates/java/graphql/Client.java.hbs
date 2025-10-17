@@ -1,0 +1,168 @@
+package {{package_name}};
+
+import com.apollographql.apollo3.ApolloClient;
+import com.apollographql.apollo3.api.ApolloResponse;
+import com.apollographql.apollo3.api.Query;
+import com.apollographql.apollo3.api.Mutation;
+import com.apollographql.apollo3.api.Subscription;
+import com.apollographql.apollo3.exception.ApolloException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.HashMap;
+import java.time.Duration;
+
+/**
+ * {{api_name}} Java GraphQL SDK Client
+ * 
+ * {{#if description}}{{description}}{{/if}}
+ */
+public class {{class_name}} {
+    private final ApolloClient apolloClient;
+    private final ObjectMapper objectMapper;
+    {{#if authentication}}
+    private final String apiKey;
+    {{/if}}
+    
+    public {{class_name}}(String graphqlEndpoint{{#if authentication}}, String apiKey{{/if}}) {
+        ApolloClient.Builder builder = new ApolloClient.Builder()
+            .serverUrl(graphqlEndpoint)
+            .httpConnectTimeout(Duration.ofSeconds(30))
+            .httpReadTimeout(Duration.ofSeconds(30));
+            
+        {{#if authentication}}
+        this.apiKey = apiKey;
+        if (apiKey != null) {
+            builder.addHttpHeader("Authorization", "Bearer " + apiKey);
+        }
+        {{/if}}
+        
+        this.apolloClient = builder.build();
+        this.objectMapper = new ObjectMapper();
+    }
+    
+    /**
+     * Execute a GraphQL query
+     * @param query The GraphQL query string
+     * @param variables Variables for the query
+     * @param responseType The expected response type class
+     * @return Query response
+     */
+    public <T> T executeQuery(String query, Map<String, Object> variables, Class<T> responseType) throws ApolloException {
+        // Create a generic GraphQL query execution
+        // In a real implementation, you would use generated query classes from GraphQL schema
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("query", query);
+        if (variables != null) {
+            payload.put("variables", variables);
+        }
+        
+        try {
+            // For now, using a simplified approach
+            // In production, you'd use Apollo's generated query classes
+            ApolloResponse<Object> response = apolloClient.query(new GenericQuery(query, variables)).execute();
+            
+            if (response.hasErrors()) {
+                throw new ApolloException("GraphQL errors: " + response.errors);
+            }
+            
+            Object data = response.data;
+            return objectMapper.convertValue(data, responseType);
+        } catch (Exception e) {
+            throw new ApolloException("Failed to execute GraphQL query", e);
+        }
+    }
+    
+    /**
+     * Execute a GraphQL query asynchronously
+     * @param query The GraphQL query string
+     * @param variables Variables for the query
+     * @param responseType The expected response type class
+     * @return CompletableFuture with query response
+     */
+    public <T> CompletableFuture<T> executeQueryAsync(String query, Map<String, Object> variables, Class<T> responseType) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return executeQuery(query, variables, responseType);
+            } catch (ApolloException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+    
+    /**
+     * Execute a GraphQL mutation
+     * @param mutation The GraphQL mutation string
+     * @param variables Variables for the mutation
+     * @param responseType The expected response type class
+     * @return Mutation response
+     */
+    public <T> T executeMutation(String mutation, Map<String, Object> variables, Class<T> responseType) throws ApolloException {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("query", mutation);
+        if (variables != null) {
+            payload.put("variables", variables);
+        }
+        
+        try {
+            ApolloResponse<Object> response = apolloClient.mutation(new GenericMutation(mutation, variables)).execute();
+            
+            if (response.hasErrors()) {
+                throw new ApolloException("GraphQL errors: " + response.errors);
+            }
+            
+            Object data = response.data;
+            return objectMapper.convertValue(data, responseType);
+        } catch (Exception e) {
+            throw new ApolloException("Failed to execute GraphQL mutation", e);
+        }
+    }
+    
+    /**
+     * Close the GraphQL client and release resources
+     */
+    public void close() {
+        if (apolloClient != null) {
+            apolloClient.close();
+        }
+    }
+    
+    // Helper classes for generic GraphQL operations
+    private static class GenericQuery implements Query<Object> {
+        private final String queryString;
+        private final Map<String, Object> variables;
+        
+        public GenericQuery(String queryString, Map<String, Object> variables) {
+            this.queryString = queryString;
+            this.variables = variables;
+        }
+        
+        @Override
+        public String document() {
+            return queryString;
+        }
+        
+        public Map<String, Object> variables() {
+            return variables;
+        }
+    }
+    
+    private static class GenericMutation implements Mutation<Object> {
+        private final String mutationString;
+        private final Map<String, Object> variables;
+        
+        public GenericMutation(String mutationString, Map<String, Object> variables) {
+            this.mutationString = mutationString;
+            this.variables = variables;
+        }
+        
+        @Override
+        public String document() {
+            return mutationString;
+        }
+        
+        public Map<String, Object> variables() {
+            return variables;
+        }
+    }
+}

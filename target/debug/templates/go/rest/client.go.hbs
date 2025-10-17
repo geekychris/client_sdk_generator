@@ -1,0 +1,273 @@
+package {{package_name}}
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+)
+
+// {{api_name}} Go SDK Client
+//
+// {{#if description}}{{description}}{{/if}}
+type {{class_name}} struct {
+	httpClient *http.Client
+	baseURL    string
+	{{#if authentication}}
+	{{#if supports_api_key}}
+	apiKey     string
+	{{/if}}
+	{{#if supports_bearer_auth}}
+	bearerToken string
+	{{/if}}
+	{{/if}}
+	{{#if retry}}
+	maxRetries int
+	{{/if}}
+}
+
+{{#if authentication}}
+// AuthConfig holds authentication configuration
+type AuthConfig struct {
+	{{#if supports_api_key}}
+	APIKey string
+	{{/if}}
+	{{#if supports_bearer_auth}}
+	BearerToken string
+	{{/if}}
+}
+{{/if}}
+
+// ClientConfig holds client configuration
+type ClientConfig struct {
+	BaseURL    string
+	HTTPClient *http.Client
+	{{#if authentication}}
+	Auth       *AuthConfig
+	{{/if}}
+	{{#if retry}}
+	MaxRetries int
+	{{/if}}
+	Timeout    time.Duration
+}
+
+// New{{class_name}} creates a new instance of {{class_name}}
+func New{{class_name}}(config ClientConfig) *{{class_name}} {
+	if config.HTTPClient == nil {
+		config.HTTPClient = &http.Client{
+			Timeout: config.Timeout,
+		}
+		if config.Timeout == 0 {
+			config.HTTPClient.Timeout = 30 * time.Second
+		}
+	}
+
+	client := &{{class_name}}{
+		httpClient: config.HTTPClient,
+		baseURL:    strings.TrimRight(config.BaseURL, "/"),
+		{{#if retry}}
+		maxRetries: config.MaxRetries,
+		{{/if}}
+	}
+
+	{{#if authentication}}
+	if config.Auth != nil {
+		{{#if supports_api_key}}
+		client.apiKey = config.Auth.APIKey
+		{{/if}}
+		{{#if supports_bearer_auth}}
+		client.bearerToken = config.Auth.BearerToken
+		{{/if}}
+	}
+	{{/if}}
+
+	{{#if retry}}
+	if client.maxRetries <= 0 {
+		client.maxRetries = 3
+	}
+	{{/if}}
+
+	return client
+}
+
+{{#if authentication}}
+{{#if supports_api_key}}
+// SetAPIKey updates the API key for authentication
+func (c *{{class_name}}) SetAPIKey(apiKey string) {
+	c.apiKey = apiKey
+}
+{{/if}}
+
+{{#if supports_bearer_auth}}
+// SetBearerToken updates the bearer token for authentication
+func (c *{{class_name}}) SetBearerToken(token string) {
+	c.bearerToken = token
+}
+{{/if}}
+{{/if}}
+
+// makeRequest performs an HTTP request with authentication and retry logic
+func (c *{{class_name}}) makeRequest(ctx context.Context, method, path string, body interface{}, params map[string]string) (*http.Response, error) {
+	url := fmt.Sprintf("%s%s", c.baseURL, path)
+	
+	// Add query parameters
+	if len(params) > 0 {
+		u, err := url.Parse(url)
+		if err != nil {
+			return nil, fmt.Errorf("invalid URL: %w", err)
+		}
+		
+		q := u.Query()
+		for key, value := range params {
+			q.Add(key, value)
+		}
+		u.RawQuery = q.Encode()
+		url = u.String()
+	}
+
+	var reqBody io.Reader
+	if body != nil {
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reqBody = bytes.NewBuffer(jsonData)
+	}
+
+	{{#if retry}}
+	var lastErr error
+	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
+	{{/if}}
+
+		req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+		if err != nil {
+			{{#if retry}}
+			lastErr = fmt.Errorf("failed to create request: %w", err)
+			continue
+			{{else}}
+			return nil, fmt.Errorf("failed to create request: %w", err)
+			{{/if}}
+		}
+
+		// Set headers
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "{{package_name}}/{{api_version}} (Go)")
+
+		{{#if authentication}}
+		// Add authentication headers
+		{{#if supports_bearer_auth}}
+		if c.bearerToken != "" {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.bearerToken))
+		}
+		{{/if}}
+		{{#if supports_api_key}}
+		{{#if (eq auth_location "Header")}}
+		if c.apiKey != "" {
+			req.Header.Set("{{auth_parameter_name}}", c.apiKey)
+		}
+		{{/if}}
+		{{/if}}
+		{{/if}}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			{{#if retry}}
+			lastErr = fmt.Errorf("request failed: %w", err)
+			continue
+			{{else}}
+			return nil, fmt.Errorf("request failed: %w", err)
+			{{/if}}
+		}
+
+		{{#if retry}}
+		// Retry on 5xx errors and specific 4xx errors
+		if resp.StatusCode >= 500 || resp.StatusCode == 429 || resp.StatusCode == 408 {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+			continue
+		}
+		{{/if}}
+
+		return resp, nil
+
+	{{#if retry}}
+	}
+	
+	return nil, lastErr
+	{{/if}}
+}
+
+{{#each operations}}
+// {{go_name name}} {{#if description}}{{description}}{{else}}{{name}} operation{{/if}}
+func (c *{{../class_name}}) {{go_name name}}(ctx context.Context{{#each parameters}}, {{camelCase name}} {{go_type}}{{/each}}) ({{response_type}}, error) {
+	{{#if has_path_params}}
+	path := "{{path}}"
+	{{#each parameters}}
+	{{#if (eq location "Path")}}
+	path = strings.ReplaceAll(path, "{{{name}}}", fmt.Sprintf("%v", {{camelCase name}}))
+	{{/if}}
+	{{/each}}
+	{{else}}
+	path := "{{path}}"
+	{{/if}}
+
+	{{#if has_query_params}}
+	params := make(map[string]string)
+	{{#each parameters}}
+	{{#if (eq location "Query")}}
+	{{#if required}}
+	params["{{name}}"] = fmt.Sprintf("%v", {{camelCase name}})
+	{{else}}
+	if {{camelCase name}} != nil {
+		params["{{name}}"] = fmt.Sprintf("%v", *{{camelCase name}})
+	}
+	{{/if}}
+	{{/if}}
+	{{/each}}
+	{{else}}
+	var params map[string]string
+	{{/if}}
+
+	resp, err := c.makeRequest(ctx, "{{method}}", path, nil, params)
+	if err != nil {
+		var zero {{response_type}}
+		return zero, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		var zero {{response_type}}
+		return zero, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	{{#if (eq response_type "interface{}")}}
+	var result {{response_type}}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		var zero {{response_type}}
+		return zero, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return result, nil
+	{{else if (eq response_type "")}}
+	return nil
+	{{else}}
+	var result {{response_type}}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		var zero {{response_type}}
+		return zero, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return result, nil
+	{{/if}}
+}
+
+{{/each}}

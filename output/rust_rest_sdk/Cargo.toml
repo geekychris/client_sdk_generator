@@ -1,0 +1,27 @@
+[package]
+name = "client-sdk"
+version = "1.0.0"
+license = "MIT"
+edition = "2021"
+description = "Auto-generated SDK for "
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+url = "2.0"
+anyhow = "1.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.0"
+
+[lib]
+name = "client_sdk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "client-sdk-cli"
+path = "src/main.rs"
+required-features = []

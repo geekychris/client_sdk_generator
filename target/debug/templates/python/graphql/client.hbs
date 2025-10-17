@@ -1,0 +1,251 @@
+"""
+{{spec.description}}
+
+Generated GraphQL SDK for {{spec.name}} v{{spec.version}}
+"""
+
+import asyncio
+import json
+from typing import Dict, Any, Optional, Union
+import httpx
+from dataclasses import dataclass
+
+{{#each feature_code.imports}}
+{{this}}
+{{/each}}
+
+
+@dataclass
+class GraphQLResponse:
+    """GraphQL response wrapper"""
+    data: Optional[Dict[str, Any]] = None
+    errors: Optional[list] = None
+
+
+class {{pascal_case spec.name}}GraphQLClient:
+    """GraphQL client for {{spec.name}} API"""
+    
+    def __init__(self, config: 'ClientConfig'):
+        self.config = config
+        self.graphql_endpoint = f"{config.base_url}/graphql"
+        self.client = httpx.Client(
+            timeout=config.request_timeout_seconds,
+            headers={"Content-Type": "application/json"}
+        )
+        
+        {{#if features.telemetry}}
+        self.telemetry_handler = TelemetryHandler()
+        {{/if}}
+        
+        {{#if features.caching}}
+        self.cache_handler = CacheHandler()
+        {{/if}}
+    
+    {{#each spec.operations}}
+    def {{snake_case name}}(self{{#each parameters}}, {{snake_case name}}: {{type_mapping data_type}}{{#unless required}} = None{{/unless}}{{/each}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{/if}}{{#unless data_type}}Dict[str, Any]{{/unless}}{{/if}}{{/each}}:
+        """
+        {{description}}
+        
+        {{#if deprecated}}
+        .. deprecated:: 
+           This operation is deprecated
+        {{/if}}
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache_handler.generate_cache_key(
+            "{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}}
+        )
+        cached_result = self.cache_handler.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            # Build GraphQL query
+            query = self._build_query("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+            
+            # Create GraphQL request
+            request_body = {"query": query}
+            
+            # Add variables if needed
+            {{#if parameters}}
+            variables = {}
+            {{#each parameters}}
+            if {{snake_case name}} is not None:
+                variables["{{name}}"] = {{snake_case name}}
+            {{/each}}
+            if variables:
+                request_body["variables"] = variables
+            {{/if}}
+            
+            {{#if features.retry}}
+            result = self._execute_with_retry(
+                lambda: self._execute_graphql_request(request_body)
+            )
+            {{/if}}
+            {{#unless features.retry}}
+            result = self._execute_graphql_request(request_body)
+            {{/unless}}
+            
+            {{#if features.caching}}
+            # Cache the result
+            self.cache_handler.put_in_cache(cache_key, result)
+            {{/if}}
+            
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry_handler.record_request("GRAPHQL", "{{name}}", duration, True)
+            {{/if}}
+            
+            return result
+            
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry_handler.record_request("GRAPHQL", "{{name}}", duration, False)
+            {{/if}}
+            raise {{pascal_case ../spec.name}}GraphQLException(
+                f"Failed to execute GraphQL operation {{name}}: {str(e)}"
+            ) from e
+    
+    async def {{snake_case name}}_async(self{{#each parameters}}, {{snake_case name}}: {{type_mapping data_type}}{{#unless required}} = None{{/unless}}{{/each}}) -> {{#each responses}}{{#if @first}}{{#if data_type}}{{type_mapping data_type}}{{/if}}{{#unless data_type}}Dict[str, Any]{{/unless}}{{/if}}{{/each}}:
+        """
+        {{description}} (Async version)
+        
+        Args:
+        {{#each parameters}}
+            {{snake_case name}}: {{description}}
+        {{/each}}
+        
+        Returns:
+            {{#each responses}}{{#if @first}}{{description}}{{/if}}{{/each}}
+        """
+        {{#if features.caching}}
+        # Check cache first
+        cache_key = self.cache_handler.generate_cache_key(
+            "{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}}
+        )
+        cached_result = self.cache_handler.get_from_cache(cache_key)
+        if cached_result is not None:
+            return cached_result
+        {{/if}}
+        
+        {{#if features.telemetry}}
+        start_time = time.time()
+        {{/if}}
+        
+        try:
+            # Build GraphQL query
+            query = self._build_query("{{name}}"{{#each parameters}}, {{snake_case name}}{{/each}})
+            
+            # Create GraphQL request
+            request_body = {"query": query}
+            
+            # Add variables if needed
+            {{#if parameters}}
+            variables = {}
+            {{#each parameters}}
+            if {{snake_case name}} is not None:
+                variables["{{name}}"] = {{snake_case name}}
+            {{/each}}
+            if variables:
+                request_body["variables"] = variables
+            {{/if}}
+            
+            async with httpx.AsyncClient(
+                timeout=self.config.request_timeout_seconds
+            ) as client:
+                response = await client.post(
+                    self.graphql_endpoint,
+                    json=request_body,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                result = self._parse_graphql_response(response)
+                
+                {{#if features.caching}}
+                # Cache the result
+                self.cache_handler.put_in_cache(cache_key, result)
+                {{/if}}
+                
+                {{#if features.telemetry}}
+                duration = time.time() - start_time
+                self.telemetry_handler.record_request("GRAPHQL", "{{name}}", duration, True)
+                {{/if}}
+                
+                return result
+                
+        except Exception as e:
+            {{#if features.telemetry}}
+            duration = time.time() - start_time
+            self.telemetry_handler.record_request("GRAPHQL", "{{name}}", duration, False)
+            {{/if}}
+            raise {{pascal_case ../spec.name}}GraphQLException(
+                f"Failed to execute async GraphQL operation {{name}}: {str(e)}"
+            ) from e
+    
+    {{/each}}
+    
+    def _build_query(self, operation_name: str, *variables) -> str:
+        """Build GraphQL query string"""
+        # This is a simplified query builder - in a real implementation,
+        # you would have proper GraphQL query generation based on the schema
+        return f"query {operation_name} {{ {operation_name} }}"
+    
+    def _execute_graphql_request(self, request_body: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute GraphQL request"""
+        response = self.client.post(
+            self.graphql_endpoint,
+            json=request_body
+        )
+        return self._parse_graphql_response(response)
+    
+    def _parse_graphql_response(self, response: httpx.Response) -> Dict[str, Any]:
+        """Parse GraphQL response"""
+        if response.status_code >= 200 and response.status_code < 300:
+            json_response = response.json()
+            
+            # Check for GraphQL errors
+            if "errors" in json_response:
+                raise {{pascal_case spec.name}}GraphQLException(
+                    f"GraphQL errors: {json_response['errors']}"
+                )
+            
+            # Return data
+            return json_response.get("data", {})
+        else:
+            raise {{pascal_case spec.name}}GraphQLException(
+                f"HTTP {response.status_code}: {response.text}"
+            )
+    
+    {{#if features.retry}}
+    {{{feature_code.code}}}
+    {{/if}}
+    
+    def close(self):
+        """Close the HTTP client"""
+        self.client.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+class {{pascal_case spec.name}}GraphQLException(Exception):
+    """Exception raised by GraphQL client operations"""
+    pass

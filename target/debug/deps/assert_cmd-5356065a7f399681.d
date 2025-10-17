@@ -1,0 +1,15 @@
+/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/deps/libassert_cmd-5356065a7f399681.rmeta: /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/lib.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/macros.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/assert.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cargo.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cmd.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/output.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/color.rs /Users/chris/code/warp_experiments/client_sdk_generator/target/debug/build/assert_cmd-b0716c02c36228cc/out/current_target.txt /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/../README.md
+
+/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/deps/assert_cmd-5356065a7f399681.d: /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/lib.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/macros.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/assert.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cargo.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cmd.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/output.rs /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/color.rs /Users/chris/code/warp_experiments/client_sdk_generator/target/debug/build/assert_cmd-b0716c02c36228cc/out/current_target.txt /Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/../README.md
+
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/lib.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/macros.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/assert.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cargo.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/cmd.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/output.rs:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/color.rs:
+/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/build/assert_cmd-b0716c02c36228cc/out/current_target.txt:
+/Users/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.0.17/src/../README.md:
+
+# env-dep:OUT_DIR=/Users/chris/code/warp_experiments/client_sdk_generator/target/debug/build/assert_cmd-b0716c02c36228cc/out

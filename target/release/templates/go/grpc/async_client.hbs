@@ -1,0 +1,49 @@
+package {{package_name}}
+
+import (
+	"context"
+)
+
+// {{class_name spec.name}}AsyncClient provides async gRPC operations
+type {{class_name spec.name}}AsyncClient struct {
+	client *{{class_name spec.name}}
+}
+
+// New{{class_name spec.name}}Async creates a new async gRPC client
+func New{{class_name spec.name}}Async(config ClientConfig) (*{{class_name spec.name}}AsyncClient, error) {
+	client, err := New{{class_name spec.name}}(config)
+	if err != nil {
+		return nil, err
+	}
+	return &{{class_name spec.name}}AsyncClient{
+		client: client,
+	}, nil
+}
+
+{{#each services}}
+{{#each methods}}
+// {{go_name name}}Result holds the result of {{go_name name}} operation
+type {{go_name name}}Result struct {
+	Data  *{{response_type}}
+	Error error
+}
+
+// {{go_name name}}Async {{#if description}}{{description}}{{else}}{{name}} operation{{/if}} (Async)
+func (c *{{class_name ../../spec.name}}AsyncClient) {{go_name name}}Async(ctx context.Context, req *{{request_type}}) <-chan {{go_name name}}Result {
+	resultChan := make(chan {{go_name name}}Result, 1)
+	
+	go func() {
+		defer close(resultChan)
+		
+		result, err := c.client.{{go_name name}}(ctx, req)
+		resultChan <- {{go_name name}}Result{
+			Data:  result,
+			Error: err,
+		}
+	}()
+	
+	return resultChan
+}
+
+{{/each}}
+{{/each}}

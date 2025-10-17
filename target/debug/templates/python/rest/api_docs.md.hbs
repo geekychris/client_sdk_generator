@@ -1,0 +1,67 @@
+# {{package}} API Documentation
+
+Generated API documentation for {{package}}.
+
+## Client
+
+The main client class provides methods for interacting with the API.
+
+```python
+from {{package}} import Client, ClientConfig
+
+config = ClientConfig(base_url="https://api.example.com")
+client = Client(config)
+```
+
+## Models
+
+{{#each spec.types}}
+### {{name}}
+
+{{#if description}}{{description}}{{else}}{{name}} data model{{/if}}
+
+{{#if properties}}
+**Properties:**
+
+{{#each properties}}
+- `{{name}}` ({{#if required}}required{{else}}optional{{/if}}): {{description}}
+{{/each}}
+{{/if}}
+
+{{/each}}
+
+## Operations
+
+{{#each spec.operations}}
+### {{name}}
+
+{{#if description}}{{description}}{{else}}{{name}} operation{{/if}}
+
+{{#if parameters}}
+**Parameters:**
+
+{{#each parameters}}
+- `{{name}}` ({{#if required}}required{{else}}optional{{/if}}): {{description}}
+{{/each}}
+{{/if}}
+
+{{#if request_body}}
+**Request Body:** {{request_body.description}}
+{{/if}}
+
+{{#each responses}}
+{{#if @first}}
+**Response:** {{description}}
+{{/if}}
+{{/each}}
+
+```python
+# Example usage
+{{#if parameters}}
+result = client.{{snake_case name}}({{#each parameters}}{{#if required}}{{snake_case name}}="value"{{#unless @last}}, {{/unless}}{{/if}}{{/each}})
+{{else}}
+result = client.{{snake_case name}}()
+{{/if}}
+```
+
+{{/each}}

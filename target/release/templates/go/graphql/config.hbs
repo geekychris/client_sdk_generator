@@ -1,0 +1,156 @@
+package {{package_name}}
+
+import (
+	"time"
+)
+
+// ClientConfig holds the configuration for the {{api_name}} GraphQL client
+type ClientConfig struct {
+	// BaseURL is the GraphQL endpoint URL
+	BaseURL string
+	
+	// Timeout for HTTP requests
+	Timeout time.Duration
+	
+	// UserAgent for HTTP requests
+	UserAgent string
+	
+	{{#if authentication}}
+	// Authentication settings
+	{{#if supports_api_key}}
+	APIKey string
+	{{/if}}
+	{{#if supports_bearer_auth}}
+	BearerToken string
+	{{/if}}
+	{{/if}}
+	
+	{{#if features.retry}}
+	// Retry settings
+	MaxRetries int
+	RetryDelay time.Duration
+	{{/if}}
+	
+	{{#if features.caching}}
+	// Cache settings
+	CacheEnabled bool
+	CacheTTL     time.Duration
+	CacheSize    int
+	{{/if}}
+	
+	{{#if features.telemetry}}
+	// Telemetry settings
+	TelemetryEnabled bool
+	MetricsEndpoint  string
+	{{/if}}
+	
+	// Custom headers to include with every request
+	DefaultHeaders map[string]string
+	
+	// GraphQL-specific settings
+	EnableIntrospection bool
+	MaxQueryDepth       int
+}
+
+// NewClientConfig creates a new ClientConfig with default values for GraphQL
+func NewClientConfig(baseURL string) *ClientConfig {
+	return &ClientConfig{
+		BaseURL:   baseURL,
+		Timeout:   30 * time.Second,
+		UserAgent: "{{package_name}}-graphql-client/{{version}}",
+		{{#if features.retry}}
+		MaxRetries: 3,
+		RetryDelay: time.Second,
+		{{/if}}
+		{{#if features.caching}}
+		CacheEnabled: false,
+		CacheTTL:     5 * time.Minute,
+		CacheSize:    1000,
+		{{/if}}
+		{{#if features.telemetry}}
+		TelemetryEnabled: true,
+		{{/if}}
+		DefaultHeaders:      make(map[string]string),
+		EnableIntrospection: false,
+		MaxQueryDepth:       15,
+	}
+}
+
+{{#if authentication}}
+{{#if supports_api_key}}
+// WithAPIKey sets the API key for authentication
+func (c *ClientConfig) WithAPIKey(apiKey string) *ClientConfig {
+	c.APIKey = apiKey
+	return c
+}
+{{/if}}
+
+{{#if supports_bearer_auth}}
+// WithBearerToken sets the bearer token for authentication
+func (c *ClientConfig) WithBearerToken(token string) *ClientConfig {
+	c.BearerToken = token
+	return c
+}
+{{/if}}
+{{/if}}
+
+// WithTimeout sets the HTTP timeout
+func (c *ClientConfig) WithTimeout(timeout time.Duration) *ClientConfig {
+	c.Timeout = timeout
+	return c
+}
+
+// WithUserAgent sets the user agent string
+func (c *ClientConfig) WithUserAgent(userAgent string) *ClientConfig {
+	c.UserAgent = userAgent
+	return c
+}
+
+// WithHeader adds a default header
+func (c *ClientConfig) WithHeader(key, value string) *ClientConfig {
+	if c.DefaultHeaders == nil {
+		c.DefaultHeaders = make(map[string]string)
+	}
+	c.DefaultHeaders[key] = value
+	return c
+}
+
+// WithIntrospection enables or disables GraphQL introspection
+func (c *ClientConfig) WithIntrospection(enabled bool) *ClientConfig {
+	c.EnableIntrospection = enabled
+	return c
+}
+
+// WithMaxQueryDepth sets the maximum query depth allowed
+func (c *ClientConfig) WithMaxQueryDepth(depth int) *ClientConfig {
+	c.MaxQueryDepth = depth
+	return c
+}
+
+{{#if features.retry}}
+// WithRetry configures retry settings
+func (c *ClientConfig) WithRetry(maxRetries int, delay time.Duration) *ClientConfig {
+	c.MaxRetries = maxRetries
+	c.RetryDelay = delay
+	return c
+}
+{{/if}}
+
+{{#if features.caching}}
+// WithCache configures caching settings
+func (c *ClientConfig) WithCache(enabled bool, ttl time.Duration, size int) *ClientConfig {
+	c.CacheEnabled = enabled
+	c.CacheTTL = ttl
+	c.CacheSize = size
+	return c
+}
+{{/if}}
+
+{{#if features.telemetry}}
+// WithTelemetry configures telemetry settings
+func (c *ClientConfig) WithTelemetry(enabled bool, endpoint string) *ClientConfig {
+	c.TelemetryEnabled = enabled
+	c.MetricsEndpoint = endpoint
+	return c
+}
+{{/if}}

@@ -1,0 +1,532 @@
+# {{api_name}} GraphQL API Documentation
+
+{{#if description}}{{description}}{{/if}}
+
+Go GraphQL client SDK for {{api_name}}.
+
+**Version:** {{version}}
+
+## Base URL
+
+The GraphQL endpoint URL is configured when creating the client:
+
+```go
+package main
+
+import (
+    "{{go_module}}"
+)
+
+func main() {
+    config := {{package_name}}.ClientConfig{
+        BaseURL: "{{base_url}}",
+        APIKey:  "your-api-key",
+    }
+    client := {{package_name}}.NewGraphQLClient(config)
+}
+```
+
+## Authentication
+
+{{#if authentication}}
+This API uses {{authentication.auth_type}} authentication.
+
+{{#if (eq authentication.auth_type "ApiKey")}}
+### API Key Authentication
+
+Set your API key in the client configuration:
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL: "{{base_url}}",
+    Auth: &{{package_name}}.AuthConfig{
+        APIKey: "your-api-key-here",
+    },
+}
+```
+
+{{#if (eq authentication.location "Header")}}
+The API key will be sent in the `{{authentication.parameter_name}}` header.
+{{/if}}
+{{#if (eq authentication.location "Query")}}
+The API key will be sent as the `{{authentication.parameter_name}}` query parameter.
+{{/if}}
+{{/if}}
+
+{{#if (eq authentication.auth_type "Http")}}
+### HTTP Bearer Authentication
+
+Set your bearer token in the client configuration:
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL: "{{base_url}}",
+    Auth: &{{package_name}}.AuthConfig{
+        BearerToken: "your-bearer-token-here",
+    },
+}
+```
+{{/if}}
+
+{{else}}
+No authentication is required for this API.
+{{/if}}
+
+## GraphQL Operations
+
+### Queries
+
+Execute GraphQL queries using the `Query` method:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "{{go_module}}"
+)
+
+func main() {
+    client := {{package_name}}.NewGraphQLClient(config)
+    ctx := context.Background()
+
+    // Simple query
+    query := `
+        query {
+            users {
+                id
+                name
+                email
+            }
+        }
+    `
+    
+    var result {{package_name}}.QueryResult
+    err := client.Query(ctx, query, nil, &result)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Users: %+v\n", result.Data)
+
+    // Query with variables
+    queryWithVars := `
+        query GetUser($id: ID!) {
+            user(id: $id) {
+                id
+                name
+                email
+                profile {
+                    bio
+                    avatarUrl
+                }
+            }
+        }
+    `
+    
+    variables := map[string]interface{}{
+        "id": "123",
+    }
+    
+    var userResult {{package_name}}.UserQueryResult
+    err = client.Query(ctx, queryWithVars, variables, &userResult)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+### Mutations
+
+Execute GraphQL mutations using the `Mutate` method:
+
+```go
+// Create mutation
+mutation := `
+    mutation CreateUser($input: CreateUserInput!) {
+        createUser(input: $input) {
+            id
+            name
+            email
+        }
+    }
+`
+
+variables := map[string]interface{}{
+    "input": {{package_name}}.CreateUserInput{
+        Name:  "John Doe",
+        Email: "john@example.com",
+    },
+}
+
+var createResult {{package_name}}.CreateUserResult
+err := client.Mutate(ctx, mutation, variables, &createResult)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Update mutation
+updateMutation := `
+    mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
+        updateUser(id: $id, input: $input) {
+            id
+            name
+            email
+            updatedAt
+        }
+    }
+`
+
+updateVars := map[string]interface{}{
+    "id": "123",
+    "input": {{package_name}}.UpdateUserInput{
+        Name: "John Smith",
+    },
+}
+
+var updateResult {{package_name}}.UpdateUserResult
+err = client.Mutate(ctx, updateMutation, updateVars, &updateResult)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+### Subscriptions
+
+Execute GraphQL subscriptions using the `Subscribe` method:
+
+```go
+// Subscribe to real-time updates
+subscription := `
+    subscription UserUpdates {
+        userUpdates {
+            id
+            name
+            status
+            lastSeen
+        }
+    }
+`
+
+// Create subscription channel
+updates := make(chan {{package_name}}.UserUpdate, 10)
+defer close(updates)
+
+// Start subscription
+err := client.Subscribe(ctx, subscription, nil, updates)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Read updates
+for update := range updates {
+    fmt.Printf("User updated: %+v\n", update)
+}
+
+// Subscription with variables
+notificationsSub := `
+    subscription NotificationsByUser($userID: ID!) {
+        notifications(userID: $userID) {
+            id
+            message
+            createdAt
+        }
+    }
+`
+
+subVars := map[string]interface{}{
+    "userID": "123",
+}
+
+notifications := make(chan {{package_name}}.Notification, 10)
+defer close(notifications)
+
+err = client.Subscribe(ctx, notificationsSub, subVars, notifications)
+if err != nil {
+    log.Fatal(err)
+}
+
+for notification := range notifications {
+    fmt.Printf("New notification: %+v\n", notification)
+}
+```
+
+## Data Types
+
+{{#each types}}
+### {{pascal_case name}}
+
+{{#if description}}{{description}}{{else}}{{pascal_case name}} GraphQL type{{/if}}
+
+{{#if (eq type "object")}}
+**Type:** Object
+
+{{#if properties}}
+**Fields:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+{{#each properties}}
+| `{{pascal_case name}}` | {{go_type data_type}} | {{#if required}}✅{{else}}❌{{/if}} | {{#if description}}{{description}}{{else}}No description{{/if}} |
+{{/each}}
+
+```go
+type {{pascal_case ../name}} struct {
+    {{#each properties}}
+    {{pascal_case name}} {{go_type data_type}} `json:"{{snake_case name}}"` {{#if description}}// {{description}}{{/if}}
+    {{/each}}
+}
+```
+{{/if}}
+{{/if}}
+
+{{#if (eq type "enum")}}
+**Type:** Enum
+
+**Allowed values:** {{#each enum_values}}`{{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+
+```go
+type {{pascal_case ../name}} string
+
+const (
+    {{#each enum_values}}
+    {{pascal_case ../name}}{{pascal_case this}} {{pascal_case ../name}} = "{{this}}"
+    {{/each}}
+)
+```
+{{/if}}
+
+---
+
+{{/each}}
+
+## Error Handling
+
+The GraphQL client provides comprehensive error handling:
+
+```go
+import (
+    "context"
+    "fmt"
+    "{{go_module}}"
+)
+
+func handleGraphQLErrors() {
+    client := {{package_name}}.NewGraphQLClient(config)
+    ctx := context.Background()
+
+    query := `{ user { id name } }`
+    var result {{package_name}}.UserResult
+
+    err := client.Query(ctx, query, nil, &result)
+    if err != nil {
+        // Check for GraphQL-specific errors
+        if graphqlErr, ok := err.(*{{package_name}}.GraphQLError); ok {
+            fmt.Printf("GraphQL error: %s\n", graphqlErr.Message)
+            
+            // Handle multiple errors
+            for _, gqlErr := range graphqlErr.Errors {
+                fmt.Printf("  - %s (path: %v)\n", gqlErr.Message, gqlErr.Path)
+            }
+            
+            // Handle extensions
+            if graphqlErr.Extensions != nil {
+                fmt.Printf("Extensions: %+v\n", graphqlErr.Extensions)
+            }
+        } else {
+            // Handle other errors (network, authentication, etc.)
+            fmt.Printf("Client error: %v\n", err)
+        }
+    }
+}
+```
+
+### Common Error Types
+
+| Error Type | Description |
+|------------|-------------|
+| `ValidationError` | Query validation failed |
+| `ExecutionError` | Query execution failed |
+| `AuthenticationError` | Authentication failed |
+| `NetworkError` | Network connectivity issues |
+| `TimeoutError` | Request timeout |
+
+### Example Error Handling
+
+```go
+func robustErrorHandling() {
+    // ... client setup ...
+
+    err := client.Query(ctx, query, variables, &result)
+    if err != nil {
+        switch e := err.(type) {
+        case *{{package_name}}.ValidationError:
+            fmt.Printf("Query validation error: %s\n", e.Message)
+        case *{{package_name}}.AuthenticationError:
+            fmt.Printf("Authentication error: %s\n", e.Message)
+            // Re-authenticate or refresh token
+        case *{{package_name}}.GraphQLError:
+            if strings.Contains(strings.ToLower(e.Message), "rate limit") {
+                fmt.Println("Rate limit exceeded - please wait before retrying")
+            } else {
+                fmt.Printf("GraphQL error: %s\n", e.Message)
+            }
+        default:
+            fmt.Printf("Unexpected error: %v\n", e)
+        }
+    }
+}
+```
+
+## Client Configuration
+
+The `ClientConfig` struct provides various configuration options:
+
+### Basic Configuration
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL:    "https://api.example.com/graphql",
+    APIKey:     "your-api-key",
+    Timeout:    30 * time.Second,  // Request timeout
+    MaxRetries: 3,                 // Number of retries for failed requests
+}
+```
+
+### Headers
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL: "https://api.example.com/graphql",
+    Headers: map[string]string{
+        "User-Agent":      "MyApp/1.0",
+        "Accept-Language": "en-US",
+    },
+}
+```
+
+### Environment Variables
+
+You can also configure the client using environment variables:
+
+```bash
+export GRAPHQL_URL="https://api.example.com/graphql"
+export API_KEY="your-api-key"
+export API_TIMEOUT="30s"
+```
+
+```go
+import "os"
+
+config := {{package_name}}.ClientConfig{
+    BaseURL: os.Getenv("GRAPHQL_URL"),
+    APIKey:  os.Getenv("API_KEY"),
+}
+
+if timeoutStr := os.Getenv("API_TIMEOUT"); timeoutStr != "" {
+    if timeout, err := time.ParseDuration(timeoutStr); err == nil {
+        config.Timeout = timeout
+    }
+}
+```
+
+{{#if features.retry}}
+### Retry Configuration
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL:      "https://api.example.com/graphql",
+    RetryEnabled: true,              // Enable automatic retries
+    MaxRetries:   3,                // Maximum number of retries
+    RetryDelay:   1 * time.Second,  // Initial delay between retries
+    RetryBackoff: 2.0,              // Backoff multiplier for delays
+}
+```
+
+Retries are automatically performed for:
+- Network connectivity issues
+- HTTP 5xx server errors
+- HTTP 429 (rate limit) responses
+- Connection timeouts
+{{/if}}
+
+{{#if features.caching}}
+### Caching Configuration
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL:        "https://api.example.com/graphql",
+    CachingEnabled: true,                   // Enable response caching
+    CacheMaxSize:   1000,                  // Maximum number of cached responses
+    CacheTTL:       5 * time.Minute,       // Time-to-live for cached responses
+}
+```
+
+Caching is applied to:
+- Query operations only (not mutations or subscriptions)
+- Successful responses
+- Identical queries and variables
+{{/if}}
+
+{{#if features.telemetry}}
+### Telemetry Configuration
+
+```go
+config := {{package_name}}.ClientConfig{
+    BaseURL:           "https://api.example.com/graphql",
+    TelemetryEnabled:  true,                            // Enable metrics collection
+    MetricsEndpoint:   "https://metrics.example.com",  // Metrics endpoint
+}
+```
+
+Collected metrics include:
+- Query execution time
+- Operation count by type (query/mutation/subscription)
+- Error count by operation
+- Success/failure rates
+{{/if}}
+
+## Context and Cancellation
+
+All GraphQL operations support Go's context for cancellation and timeouts:
+
+```go
+import (
+    "context"
+    "time"
+)
+
+// With timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+err := client.Query(ctx, query, variables, &result)
+if err != nil {
+    if ctx.Err() == context.DeadlineExceeded {
+        fmt.Println("Query timed out")
+    } else {
+        fmt.Printf("Query error: %v\n", err)
+    }
+}
+
+// With cancellation
+ctx, cancel = context.WithCancel(context.Background())
+
+// Cancel the context from another goroutine
+go func() {
+    time.Sleep(5 * time.Second)
+    cancel()
+}()
+
+err = client.Subscribe(ctx, subscription, nil, updates)
+if err != nil {
+    if ctx.Err() == context.Canceled {
+        fmt.Println("Subscription cancelled")
+    }
+}
+```
+
+---
+
+*This documentation was generated automatically from the GraphQL schema.*
