@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use anyhow::{Context, Result};
 use openapiv3::{OpenAPI, ReferenceOr, Schema, SchemaKind, Type, Operation};
 use std::path::PathBuf;

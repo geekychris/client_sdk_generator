@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use anyhow::{Context, Result};
 use async_graphql_parser::{parse_schema, types::*, Positioned};
 use async_graphql_value::Value;

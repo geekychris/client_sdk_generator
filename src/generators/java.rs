@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 // Java-specific generator logic
 // This module would contain Java-specific code generation utilities
 // For now, most of the Java generation is handled by templates

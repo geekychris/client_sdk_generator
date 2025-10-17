@@ -2,7 +2,7 @@
 name = "client-sdk-generator"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Chris Collins <chris@hitorro.com>"]
 description = "A multi-language client SDK generator for OpenAPI, GraphQL, and gRPC"
 license = "MIT"
 repository = "https://github.com/yourusername/client-sdk-generator"

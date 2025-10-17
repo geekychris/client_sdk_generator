@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use anyhow::{Context, Result};
 use handlebars::{Handlebars, Helper, Context as HbsContext, RenderContext, Output, HelperResult};
 use serde_json::Value;

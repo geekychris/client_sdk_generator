@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

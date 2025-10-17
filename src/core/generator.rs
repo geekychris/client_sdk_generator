@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 use serde_json::Value;

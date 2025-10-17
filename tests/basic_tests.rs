@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use client_sdk_generator::core::config::TargetLanguage;
 use std::str::FromStr;
 

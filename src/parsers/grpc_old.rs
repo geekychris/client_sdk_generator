@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Chris Collins <chris@hitorro.com>
+// Licensed under the MIT License
+
 use anyhow::{Context, Result};
 use protobuf_parse::{ProtoPath, pure::parse_and_typecheck};
 use std::path::PathBuf;
