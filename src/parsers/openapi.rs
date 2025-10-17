@@ -100,7 +100,7 @@ impl OpenApiParser {
             }
             
             // Parse security schemes
-            for (name, security_ref) in &components.security_schemes {
+            for (_name, security_ref) in &components.security_schemes {
                 if let ReferenceOr::Item(security) = security_ref {
                     let auth_spec = self.parse_security_scheme(security)?;
                     api_spec.authentication = Some(auth_spec);
@@ -114,7 +114,7 @@ impl OpenApiParser {
     
     fn parse_operation(&self, path: &str, method: HttpMethod, operation: &Operation) -> Result<ApiOperation> {
         let operation_id = operation.operation_id.clone()
-            .unwrap_or_else(|| format!("{}_{}", method.to_string().to_lowercase(), path.replace('/', "_").replace('{', "").replace('}', "")));
+            .unwrap_or_else(|| format!("{}_{}", method.to_string().to_lowercase(), path.replace('/', "_").replace(['{', '}'], "")));
         
         let mut api_operation = ApiOperation {
             id: operation_id.clone(),
@@ -222,10 +222,7 @@ impl OpenApiParser {
             SchemaKind::Type(Type::Object(obj)) => {
                 type_def.type_kind = TypeKind::Object;
                 type_def.required = obj.required.clone();
-                type_def.additional_properties = match &obj.additional_properties {
-                    Some(_) => true,
-                    None => false,
-                };
+                type_def.additional_properties = obj.additional_properties.is_some();
                 
                 // Parse properties
                 for (prop_name, prop_schema_ref) in &obj.properties {
@@ -244,15 +241,15 @@ impl OpenApiParser {
                     }
                 }
             }
-            SchemaKind::Type(Type::Array(arr)) => {
+            SchemaKind::Type(Type::Array(_arr)) => {
                 type_def.type_kind = TypeKind::Array;
                 // For arrays, we create a wrapper type
             }
-            SchemaKind::OneOf { one_of } => {
+            SchemaKind::OneOf { one_of: _ } => {
                 type_def.type_kind = TypeKind::Union;
                 // Handle union types
             }
-            SchemaKind::AllOf { all_of } => {
+            SchemaKind::AllOf { all_of: _ } => {
                 type_def.type_kind = TypeKind::Interface;
                 // Handle interface/inheritance
             }

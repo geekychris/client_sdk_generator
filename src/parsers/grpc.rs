@@ -5,8 +5,8 @@ use anyhow::{Context, Result};
 use std::path::PathBuf;
 
 use crate::core::types::{
-    ApiSpec, Operation as ApiOperation, TypeDefinition, Parameter, Response,
-    HttpMethod, TypeReference, BaseType, Property, TypeKind,
+    ApiSpec, Operation as ApiOperation, TypeDefinition, Response,
+    HttpMethod, TypeReference, Property, TypeKind,
 };
 
 pub struct GrpcParser;

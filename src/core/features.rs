@@ -270,12 +270,9 @@ async def execute_with_retry(self, operation):
             "import time".to_string(),
         ];
         
-        match &config.provider {
-            TelemetryProvider::OpenTelemetry => {
-                dependencies.push("opentelemetry-api>=1.21.0".to_string());
-                imports.push("from opentelemetry import trace".to_string());
-            }
-            _ => {}
+        if let TelemetryProvider::OpenTelemetry = &config.provider {
+            dependencies.push("opentelemetry-api>=1.21.0".to_string());
+            imports.push("from opentelemetry import trace".to_string());
         }
         
         let code = r#"
@@ -416,12 +413,9 @@ where
             "use std::time::Instant;".to_string(),
         ];
         
-        match &config.provider {
-            TelemetryProvider::OpenTelemetry => {
-                dependencies.push("opentelemetry = \"0.21\"".to_string());
-                imports.push("use opentelemetry::{trace::Tracer, global};".to_string());
-            }
-            _ => {}
+        if let TelemetryProvider::OpenTelemetry = &config.provider {
+            dependencies.push("opentelemetry = \"0.21\"".to_string());
+            imports.push("use opentelemetry::{trace::Tracer, global};".to_string());
         }
         
         let code = r#"
@@ -581,7 +575,7 @@ func (c *Client) executeWithRetry(fn func() error) error {{
         }
     }
     
-    fn generate_go_telemetry(&self, config: &TelemetryConfig) -> FeatureCode {
+    fn generate_go_telemetry(&self, _config: &TelemetryConfig) -> FeatureCode {
         let dependencies = vec![
             "github.com/prometheus/client_golang/prometheus".to_string(),
         ];
@@ -739,7 +733,7 @@ class RetryHandler {{
         }
     }
     
-    fn generate_typescript_telemetry(&self, config: &TelemetryConfig) -> FeatureCode {
+    fn generate_typescript_telemetry(&self, _config: &TelemetryConfig) -> FeatureCode {
         let dependencies = vec![
             "prom-client".to_string(),
         ];

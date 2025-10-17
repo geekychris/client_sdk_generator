@@ -2,12 +2,11 @@
 // Licensed under the MIT License
 
 use crate::core::{
-    config::{GeneratorConfig, AuthenticationType, AuthLocation},
+    config::GeneratorConfig,
     types::{ApiSpec, BaseType, TypeReference},
     template::TemplateEngine,
 };
 use anyhow::Result;
-use handlebars::Handlebars;
 use serde_json::json;
 use std::{collections::HashMap, path::Path};
 
@@ -193,7 +192,7 @@ impl GoGenerator {
         // Look for successful response (200-299) 
         for response in &operation.responses {
             if let Some(status) = response.status_code {
-                if status >= 200 && status < 300 {
+                if (200..300).contains(&status) {
                     if let Some(data_type) = &response.data_type {
                         return self.map_type_to_go(data_type);
                     }

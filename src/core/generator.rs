@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use serde_json::Value;
 use tracing::{info, debug, warn};
 
@@ -202,7 +202,7 @@ impl SdkGenerator {
     
     async fn generate_build_files(
         &self,
-        output_path: &PathBuf,
+        output_path: &Path,
         feature_codes: &[FeatureCode],
     ) -> Result<()> {
         debug!("Generating build files");
@@ -302,7 +302,7 @@ impl SdkGenerator {
         Ok(())
     }
     
-    async fn generate_documentation(&self, api_spec: &ApiSpec, output_path: &PathBuf) -> Result<()> {
+    async fn generate_documentation(&self, api_spec: &ApiSpec, output_path: &Path) -> Result<()> {
         debug!("Generating documentation");
         
         let docs_dir = output_path.join("docs");
@@ -330,7 +330,7 @@ impl SdkGenerator {
             crate::core::config::TargetLanguage::Java => {
                 // Try to format with Google Java Format or similar
                 if let Err(e) = tokio::process::Command::new("google-java-format")
-                    .args(&["--replace", "--recursive"])
+                    .args(["--replace", "--recursive"])
                     .arg(output_path)
                     .output()
                     .await
@@ -351,7 +351,7 @@ impl SdkGenerator {
             crate::core::config::TargetLanguage::Rust => {
                 // Try to format with rustfmt
                 if let Err(e) = tokio::process::Command::new("cargo")
-                    .args(&["fmt", "--all"])
+                    .args(["fmt", "--all"])
                     .current_dir(output_path)
                     .output()
                     .await
@@ -362,7 +362,7 @@ impl SdkGenerator {
             crate::core::config::TargetLanguage::Go => {
                 // Try to format with gofmt
                 if let Err(e) = tokio::process::Command::new("gofmt")
-                    .args(&["-w", "."])
+                    .args(["-w", "."])
                     .current_dir(output_path)
                     .output()
                     .await
@@ -373,7 +373,7 @@ impl SdkGenerator {
             crate::core::config::TargetLanguage::TypeScript => {
                 // Try to format with prettier
                 if let Err(e) = tokio::process::Command::new("prettier")
-                    .args(&["--write", "**/*.ts"])
+                    .args(["--write", "**/*.ts"])
                     .current_dir(output_path)
                     .output()
                     .await
@@ -468,7 +468,7 @@ impl SdkGenerator {
         }))
     }
     
-    fn get_client_file_path(&self, output_path: &PathBuf) -> PathBuf {
+    fn get_client_file_path(&self, output_path: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 let package_path = self.config.output_config.package_name
@@ -488,7 +488,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_async_client_file_path(&self, output_path: &PathBuf) -> PathBuf {
+    fn get_async_client_file_path(&self, output_path: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 let package_path = self.config.output_config.package_name
@@ -508,7 +508,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_config_file_path(&self, output_path: &PathBuf) -> PathBuf {
+    fn get_config_file_path(&self, output_path: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 let package_path = self.config.output_config.package_name
@@ -528,7 +528,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_models_directory(&self, output_path: &PathBuf) -> PathBuf {
+    fn get_models_directory(&self, output_path: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 let package_path = self.config.output_config.package_name
@@ -548,7 +548,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_model_file_path(&self, models_dir: &PathBuf, model_name: &str) -> PathBuf {
+    fn get_model_file_path(&self, models_dir: &Path, model_name: &str) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 models_dir.join(format!("{}.java", model_name))
@@ -564,7 +564,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_tests_directory(&self, output_path: &PathBuf) -> PathBuf {
+    fn get_tests_directory(&self, output_path: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 output_path.join("src").join("test").join("java")
@@ -580,7 +580,7 @@ impl SdkGenerator {
         }
     }
     
-    fn get_test_file_path(&self, tests_dir: &PathBuf) -> PathBuf {
+    fn get_test_file_path(&self, tests_dir: &Path) -> PathBuf {
         match self.config.target_language {
             crate::core::config::TargetLanguage::Java => {
                 tests_dir.join("ClientTest.java")

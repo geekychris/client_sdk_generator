@@ -203,10 +203,10 @@ fn type_mapping_helper(
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    let type_ref = h.param(0)
+    let _type_ref = h.param(0)
         .ok_or_else(|| handlebars::RenderError::new("Type reference required for type_mapping"))?;
     
-    let language = ctx.data()["language"].as_str()
+    let _language = ctx.data()["language"].as_str()
         .ok_or_else(|| handlebars::RenderError::new("Language context required"))?;
     
     // This would need to be implemented based on the actual TypeReference structure
@@ -364,7 +364,7 @@ fn capitalize_first(s: &str) -> String {
 
 // Additional helper functions
 fn contains_date_type_helper(
-    h: &Helper,
+    _h: &Helper,
     _: &Handlebars,
     _: &HbsContext,
     _: &mut RenderContext,
@@ -377,7 +377,7 @@ fn contains_date_type_helper(
 }
 
 fn contains_datetime_type_helper(
-    h: &Helper,
+    _h: &Helper,
     _: &Handlebars,
     _: &HbsContext,
     _: &mut RenderContext,

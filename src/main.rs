@@ -5,7 +5,6 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use tracing::{info, Level};
-use tracing_subscriber;
 
 mod core;
 mod generators;

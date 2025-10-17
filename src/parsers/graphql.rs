@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::core::types::{
     ApiSpec, Operation as ApiOperation, TypeDefinition, Parameter, Response,
-    HttpMethod, ParameterType, TypeReference, BaseType, Property, TypeKind,
+    HttpMethod, ParameterType, TypeReference, Property, TypeKind,
 };
 
 pub struct GraphQLParser;

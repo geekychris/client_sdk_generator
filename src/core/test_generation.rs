@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::core::config::TargetLanguage;
 use crate::core::types::{ApiSpec, Operation, TypeDefinition};
@@ -137,7 +137,7 @@ pub trait TestGenerator {
         &self,
         api_spec: &ApiSpec,
         config: &TestGenerationConfig,
-        output_path: &PathBuf,
+        output_path: &Path,
     ) -> Result<TestSuite>;
 
     /// Generate unit tests for client classes

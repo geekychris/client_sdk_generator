@@ -1,12 +1,12 @@
 // Copyright (c) 2024 Chris Collins <chris@hitorro.com>
 // Licensed under the MIT License
 
-use anyhow::{Context, Result};
-use std::path::PathBuf;
+use anyhow::Result;
+use std::path::{Path, PathBuf};
 
 use crate::core::config::TargetLanguage;
 use crate::core::test_generation::*;
-use crate::core::types::{ApiSpec, Operation, TypeDefinition, BaseType, HttpMethod};
+use crate::core::types::{ApiSpec, Operation, TypeDefinition, BaseType};
 use crate::generators::java::JavaGenerator;
 
 pub struct JavaTestGenerator {
@@ -627,7 +627,7 @@ junit.jupiter.execution.parallel.mode.default=same_thread
 }
 
 impl TestGenerator for JavaTestGenerator {
-    fn generate_test_suite(&self, api_spec: &ApiSpec, config: &TestGenerationConfig, output_path: &PathBuf) -> Result<TestSuite> {
+    fn generate_test_suite(&self, api_spec: &ApiSpec, config: &TestGenerationConfig, _output_path: &Path) -> Result<TestSuite> {
         let mut test_files = vec![];
         let mut mock_data_files = vec![];
 

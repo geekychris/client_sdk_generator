@@ -8,7 +8,7 @@ pub use java::JavaTestGenerator;
 pub use typescript::TypeScriptTestGenerator;
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::core::config::TargetLanguage;
 use crate::core::test_generation::*;
@@ -44,7 +44,7 @@ impl TestGenerator for StubTestGenerator {
         &self,
         _api_spec: &crate::core::types::ApiSpec,
         _config: &TestGenerationConfig,
-        _output_path: &PathBuf,
+        _output_path: &Path,
     ) -> Result<TestSuite> {
         Ok(TestSuite {
             name: "stub_test_suite".to_string(),

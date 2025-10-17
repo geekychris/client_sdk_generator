@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::core::config::TargetLanguage;
 use crate::core::test_generation::*;
@@ -470,7 +470,7 @@ if (!global.fetch) {
 }
 
 impl TestGenerator for TypeScriptTestGenerator {
-    fn generate_test_suite(&self, api_spec: &ApiSpec, config: &TestGenerationConfig, _output_path: &PathBuf) -> Result<TestSuite> {
+    fn generate_test_suite(&self, api_spec: &ApiSpec, config: &TestGenerationConfig, _output_path: &Path) -> Result<TestSuite> {
         let mut test_files = vec![];
         let mut mock_data_files = vec![];
 

@@ -258,7 +258,7 @@ impl Default for CachingConfig {
 }
 
 impl OutputConfig {
-    fn default_for(language: TargetLanguage) -> Self {
+    fn default_for(_language: TargetLanguage) -> Self {
         Self {
             package_name: None,
             version: "1.0.0".to_string(),
