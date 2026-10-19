@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Client SDK Generator logo" width="180">
+</p>
+
 # Client SDK Generator
 
 A comprehensive, multi-language client SDK generator that creates robust, feature-rich SDKs from OpenAPI specifications, GraphQL schemas, and gRPC protocol definitions.
